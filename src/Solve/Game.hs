@@ -33,9 +33,12 @@ data Game p e =
 solve :: Ord p => Game p e -> p -> (e, Map p e)
 solve game = go Set.empty Map.empty
   where
-    go g db p = (e, Map.insert p e db')
-      where
-        (e,db') = play g db p (eval game p)
+    go g db p =
+        case Map.lookup p db of
+          Just e -> (e,db)
+          Nothing -> (e, Map.insert p e db')
+            where
+              (e,db') = play g db p (eval game p)
 
     play _ db _ (Left e) = (e,db)
     play g db p (Right f) = (e,db')
