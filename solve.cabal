@@ -10,8 +10,7 @@ extra-source-files: README.md
 author: Joe Leslie-Hurd <joe@gilith.com>
 maintainer: Joe Leslie-Hurd <joe@gilith.com>
 description:
-  The solve package implements a basic Haskell library for solving and
-  analyzing simple games (e.g., Fox & Hounds).
+  A library for solving and analyzing simple games (e.g., Fox & Hounds).
 
 Library
   build-depends:
@@ -23,3 +22,7 @@ Library
     Solve.FoxHounds,
     Solve.Game,
     Solve.Util
+
+source-repository head
+  type: git
+  location: git://github.com/gilith/solve.git
