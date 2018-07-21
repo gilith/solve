@@ -11,20 +11,8 @@ portability: portable
 module Solve.Util
 where
 
-import Data.List (sortBy)
-import Data.Ord (comparing)
 import Data.Set (Set)
 import qualified Data.Set as Set
-
--------------------------------------------------------------------------------
--- Finding the first satisfying element of a list
--------------------------------------------------------------------------------
-
-find :: (a -> Bool) -> [a] -> Maybe ([a],a,[a])
-find p = go []
-  where
-    go _ [] = Nothing
-    go xs (x : ys) = if p x then Just (reverse xs, x, ys) else go (x : xs) ys
 
 -------------------------------------------------------------------------------
 -- Mapping with state over a list
@@ -43,36 +31,6 @@ mapRL f = \xs s -> foldr g (s,[]) xs
     g x (s,ys) = (s', y : ys) where (s',y) = f x s
 
 -------------------------------------------------------------------------------
--- Ordering and reordering
--------------------------------------------------------------------------------
-
-orderBy :: (a -> a -> Ordering) -> [a] -> [(Int,a)]
-orderBy cmp = sortBy cmp2 . zip [0..]
-  where cmp2 (_,x) (_,y) = cmp x y
-
-reorder :: [(Int,a)] -> [a]
-reorder = map snd . sortBy (comparing fst)
-
--------------------------------------------------------------------------------
--- An integer nth root function [1] satisfying
---
---  0 < n /\ 0 <= k /\ p = nthRoot n k
--- ------------------------------------
---        p ^ n <= k < (p + 1) ^ n
---
--- 1. https://en.wikipedia.org/wiki/Nth_root_algorithm
--------------------------------------------------------------------------------
-
-nthRoot :: Integer -> Integer -> Integer
-nthRoot 1 k = k
-nthRoot _ 0 = 0
-nthRoot n k = if k < n then 1 else go (k `div` n)
-  where
-    go x = if x' >= x then x else go x'
-      where
-        x' = ((n - 1) * x + k `div` (x ^ (n - 1))) `div` n
-
--------------------------------------------------------------------------------
 -- Updating elements of a set
 -------------------------------------------------------------------------------
 
@@ -80,3 +38,14 @@ updateSet :: Ord a => (a -> [a]) -> Set a -> [Set a]
 updateSet f s = Set.foldr g [] s
   where
     g x l = map (flip Set.insert (Set.delete x s)) (f x) ++ l
+
+-------------------------------------------------------------------------------
+-- Transitive closure
+-------------------------------------------------------------------------------
+
+transitiveClosure :: Ord a => (a -> [a]) -> [a] -> Set a
+transitiveClosure f = go Set.empty
+  where
+    go s [] = s
+    go s (x : xs) | Set.member x s = go s xs
+    go s (x : xs) | otherwise = go (Set.insert x s) (f x ++ xs)

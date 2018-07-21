@@ -15,7 +15,7 @@ import qualified Data.Char as Char
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Game)
+import Solve.Game (Game,Player(..))
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -52,22 +52,23 @@ foxAdjacent (Coord x y) = rankAdjacent x (y - 1) ++ rankAdjacent x (y + 1)
 houndAdjacent :: Coord -> [Coord]
 houndAdjacent (Coord x y) = rankAdjacent x (y + 1)
 
+houndsReachable :: Set Coord -> Set Coord
+houndsReachable = transitiveClosure houndAdjacent . Set.toList
+
 -------------------------------------------------------------------------------
 -- Positions
 -------------------------------------------------------------------------------
 
 data Pos =
     Pos
-      {foxOnMove :: Bool,
-       fox :: Coord,
+      {fox :: Coord,
        hounds :: Set Coord}
   deriving (Eq,Ord,Show)
 
 initial :: Pos
 initial =
     Pos
-      {foxOnMove = True,
-       fox = Coord (2 * (n `div` 2)) (boardSize - 1),
+      {fox = Coord (2 * (n `div` 2)) (boardSize - 1),
        hounds = Set.fromList (map (\x -> Coord (2 * x + 1) 0) [0..(n-1)])}
   where
     n = boardSize `div` 2
@@ -85,56 +86,39 @@ empty p = not . occupied p
 foxMove :: Pos -> [Pos]
 foxMove p = map mk cl
   where
-    mk c = p {foxOnMove = False, fox = c}
+    mk c = p {fox = c}
     cl = filter (empty p) (foxAdjacent (fox p))
 
 houndsMove :: Pos -> [Pos]
 houndsMove p = map mk (updateSet mv (hounds p))
   where
-    mk hs = p {foxOnMove = True, hounds = hs}
+    mk hs = p {hounds = hs}
     mv h = filter (empty p) (houndAdjacent h)
 
-move :: Pos -> [Pos]
-move p = if foxOnMove p then foxMove p else houndsMove p
-
-gameOver :: Pos -> Bool
-gameOver = null . move
+move :: Player -> Pos -> [Pos]
+move Player1 p = foxMove p
+move Player2 p = houndsMove p
 
 -------------------------------------------------------------------------------
 -- Position evaluations
 -------------------------------------------------------------------------------
 
-data Eval =
-    FoxEscape Int
-  | FoxCapture Int
-  deriving (Eq,Show)
+foxEscaped :: Pos -> Bool
+foxEscaped p = Set.notMember (fox p) (houndsReachable (hounds p))
 
-instance Ord Eval where
-  compare (FoxEscape n1) (FoxEscape n2) = compare n2 n1
-  compare (FoxEscape _) (FoxCapture _) = GT
-  compare (FoxCapture _) (FoxEscape _) = LT
-  compare (FoxCapture n1) (FoxCapture n2) = compare n1 n2
-
-foxWin :: Eval
-foxWin = FoxEscape 0
-
-houndsWin :: Eval
-houndsWin = FoxCapture 0
-
-delay :: Eval -> Eval
-delay (FoxEscape n) = FoxEscape (n + 1)
-delay (FoxCapture n) = FoxCapture (n + 1)
-
-eval :: Pos -> Either Eval ([Eval] -> Bool -> Eval)
-eval p = if gameOver p then Left result else Right lift
-  where
-    m = foxOnMove p
-    result = if m then houndsWin else foxWin
-    lift es _ = delay (if m then maximum es else minimum es)
+won :: Player -> Pos -> Maybe Player
+won pl p | null (move pl p) = Just (Game.turn pl)
+won _ p | foxEscaped p = Just Player1
+won _ _ | otherwise = Nothing
 
 -------------------------------------------------------------------------------
 -- Game definition
 -------------------------------------------------------------------------------
 
-game :: Game Pos Eval
-game = Game.Game {Game.move = move, Game.eval = eval}
+game :: Game Pos
+game pl p =
+    if null ps then Left (Game.win (Game.turn pl))
+    else if foxEscaped p then Left (Game.win Player1)
+    else Right ps
+  where
+    ps = move pl p
