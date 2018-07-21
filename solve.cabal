@@ -10,7 +10,8 @@ extra-source-files: README.md
 author: Joe Leslie-Hurd <joe@gilith.com>
 maintainer: Joe Leslie-Hurd <joe@gilith.com>
 description:
-  A library for solving and analyzing finite games (e.g., Fox & Hounds).
+  A library for solving and analyzing finite two-player games (e.g.,
+  Fox & Hounds).
 
 Library
   build-depends:

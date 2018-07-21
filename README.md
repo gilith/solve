@@ -2,7 +2,8 @@ The solve package
 =================
 
 The [solve package][] is a [Haskell][] library for solving and
-analyzing finite games (e.g., [Fox and Hounds][Fox & Hounds]).
+analyzing finite two-player games (e.g., [Fox & Hounds][Fox and
+Hounds]).
 
 This software is released under the [MIT License][].
 
