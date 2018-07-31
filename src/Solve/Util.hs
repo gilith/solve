@@ -64,6 +64,12 @@ normalize l = map (* c) l
 mean :: [(Prob,Double)] -> Double
 mean = sum . map (uncurry (*))
 
+zeroProb :: Prob -> Bool
+zeroProb p = p <= 0.0
+
+nonZeroProb :: Prob -> Bool
+nonZeroProb = not . zeroProb
+
 showProb :: Prob -> String
 showProb p = showFFloat (Just 3) p ""
 

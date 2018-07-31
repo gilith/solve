@@ -153,7 +153,7 @@ probWin game wpl adv = curry (fst . Graph.dfs pre post)
     pre (pl,p) =
         case game pl p of
           Left e -> Left (if better wpl e Draw then 1.0 else 0.0)
-          Right ps -> Right (map ((,) (turn pl)) ps)
+          Right ps -> Right (map ((,) (turn pl)) (pruneZeroProb pl ps))
 
     post (pl,_) pws =
         if pl == wpl then maximum ws
@@ -162,3 +162,7 @@ probWin game wpl adv = curry (fst . Graph.dfs pre post)
         (pps,mws) = unzip pws
         ps = map snd pps
         ws = map (fromMaybe 0.0) mws
+
+    pruneZeroProb pl ps =
+        if pl == wpl then ps
+        else map snd $ filter (nonZeroProb . fst) $ zip (adv ps) ps
