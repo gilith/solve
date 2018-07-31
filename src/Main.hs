@@ -50,7 +50,7 @@ fhProbDepth = map f [0..fhDepth]
 
 showProbDepth :: [(Int,Prob,Prob)] -> String
 showProbDepth ps =
-    showTable (["Win prob", "Player1", "Player2"] : [] : map f ps)
+    showTable (["Adversary", "Player1", "Player2"] : [] : map f ps)
   where
     f (n,p,q) = ["n = " ++ show n, showProb p, showProb q]
 
@@ -65,9 +65,11 @@ main :: IO ()
 main = do
     --args <- Environment.getArgs
     ___
-    putStrLn "Fox & Hounds:\n"
-    putStrLn $ "Solution: " ++ show (fhSolution)
-    putStrLn $ "P (Hounds win | stopLoss 1) = " ++ show (fhProbWin Player2 1)
+    putStrLn "Fox & Hounds:"
+    putStrLn ""
+    putStrLn $ "Board size = " ++ show FoxHounds.boardSize
+    putStrLn $ "Solution = " ++ show (fhSolution)
+    putStrLn ""
     putStrLn $ showProbDepth fhProbDepth
     ___
     return ()
