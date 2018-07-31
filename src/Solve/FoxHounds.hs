@@ -15,7 +15,7 @@ import qualified Data.Char as Char
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Game,Player(..))
+import Solve.Game (Adversary,Game,Player(..),Solve)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -23,9 +23,8 @@ import Solve.Util
 -- Constants
 -------------------------------------------------------------------------------
 
--- The code assumes the board size is even
-boardSize :: Int
-boardSize = 8
+packSize :: Int
+packSize = 4
 
 -------------------------------------------------------------------------------
 -- Coordinates
@@ -37,6 +36,9 @@ data Coord =
 
 instance Show Coord where
   show (Coord x y) = Char.chr (Char.ord 'a' + x) : show (y + 1)
+
+boardSize :: Int
+boardSize = 2 * packSize
 
 onBoard :: Coord -> Bool
 onBoard (Coord x y) =
@@ -122,3 +124,24 @@ game pl p =
     else Right ps
   where
     ps = move pl p
+
+-------------------------------------------------------------------------------
+-- Solution
+-------------------------------------------------------------------------------
+
+solution :: Solve Pos
+solution = snd (Game.solve game Player1 initial)
+
+-------------------------------------------------------------------------------
+-- Adversaries
+-------------------------------------------------------------------------------
+
+stopLossAdversary :: Player -> Int -> Adversary Pos
+stopLossAdversary = Game.stopLossAdversary solution
+
+-------------------------------------------------------------------------------
+-- Win probability
+-------------------------------------------------------------------------------
+
+probWin :: Player -> Adversary Pos -> Prob
+probWin pl adv = Game.probWin game pl adv Player1 initial

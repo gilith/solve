@@ -13,6 +13,7 @@ where
 
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Numeric (showFFloat)
 
 -------------------------------------------------------------------------------
 -- Mapping with state over a list
@@ -49,3 +50,49 @@ transitiveClosure f = go Set.empty
     go s [] = s
     go s (x : xs) | Set.member x s = go s xs
     go s (x : xs) | otherwise = go (Set.insert x s) (f x ++ xs)
+
+-------------------------------------------------------------------------------
+-- Probabilities
+-------------------------------------------------------------------------------
+
+type Prob = Double
+
+normalize :: [Double] -> [Prob]
+normalize l = map (* c) l
+  where c = 1.0 / sum l
+
+mean :: [(Prob,Double)] -> Double
+mean = sum . map (uncurry (*))
+
+showProb :: Prob -> String
+showProb p = showFFloat (Just 3) p ""
+
+-------------------------------------------------------------------------------
+-- Pretty-print a table
+-------------------------------------------------------------------------------
+
+showTable :: [[String]] -> String
+showTable rows =
+    concat $ map (showRow (widths [] rows)) rows
+  where
+    showRow :: [Int] -> [String] -> String
+    showRow ws [] =
+        tail (concat (map (\w -> "+" ++ replicate (w + 2) '-') ws)) ++ "\n"
+    showRow ws (c : cs) =
+        drop 2 (showEntry (head ws) c) ++
+        concat (zipWith showEntry (tail ws) cs) ++ "\n"
+
+    showEntry :: Int -> String -> String
+    showEntry w c = " | " ++ replicate (w - length c) ' ' ++ c
+
+    widths :: [Int] -> [[String]] -> [Int]
+    widths ws [] = ws
+    widths ws (r : rs) = widths (combine ws (map length r)) rs
+
+    combine :: [Int] -> [Int] -> [Int]
+    combine r1 r2 =
+      zipWith max r1 r2 ++
+      (case compare (length r1) (length r2) of
+         LT -> drop (length r1) r2
+         EQ -> []
+         GT -> drop (length r2) r1)

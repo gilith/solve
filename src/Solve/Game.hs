@@ -12,9 +12,11 @@ module Solve.Game
 where
 
 import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 
 import qualified Solve.Graph as Graph
+import Solve.Util
 
 -------------------------------------------------------------------------------
 -- Players
@@ -53,6 +55,10 @@ instance Ord Eval where
   compare _ (Win Player2 _) = GT
   compare Draw Draw = EQ
 
+better :: Ord a => Player -> a -> a -> Bool
+better Player1 x y = x > y
+better Player2 x y = x < y
+
 best :: Ord a => Player -> [a] -> a
 best Player1 = maximum
 best Player2 = minimum
@@ -89,34 +95,70 @@ solve game = curry (Graph.dfs pre post)
 
     post (pl,_) = delay . best pl . map (fromMaybe Draw . snd)
 
+eval :: Ord p => Solve p -> Player -> p -> Maybe Eval
+eval sol pl p = Map.lookup (pl,p) sol
+
+evalUnsafe :: Ord p => Solve p -> Player -> p -> Eval
+evalUnsafe sol pl p =
+    case eval sol pl p of
+      Just e -> e
+      Nothing -> error "position is unreachable"
+
+-------------------------------------------------------------------------------
+-- Adversaries
+-------------------------------------------------------------------------------
+
+type Weight = Double
+
+type Adversary p = [p] -> [Weight]
+
+probAdversary :: Adversary p -> [p] -> [Prob]
+probAdversary adv = normalize . adv
+
+combineAdversary :: Adversary p -> Adversary p -> Adversary p
+combineAdversary adv1 adv2 ps = zipWith (*) (adv1 ps) (adv2 ps)
+
+orelseAdversary :: Adversary p -> Adversary p -> Adversary p
+orelseAdversary adv1 adv2 ps =
+    if sum w1 <= 0.0 then w2 else w1
+  where
+    w1 = adv1 ps
+    w2 = adv2 ps
+
+weightAdversary :: (p -> Weight) -> Adversary p
+weightAdversary w = map w
+
+uniformAdversary :: Adversary p
+uniformAdversary = weightAdversary (const 1.0)
+
+filterAdversary :: (p -> Bool) -> Adversary p
+filterAdversary p = weightAdversary (b2w . p)
+  where
+    b2w True = 1.0
+    b2w False = 0.0
+
+stopLossAdversary :: Ord p => Solve p -> Player -> Int -> Adversary p
+stopLossAdversary sol pl n = filterAdversary f
+  where
+    f p = let e = evalUnsafe sol pl p in not (better pl e ok)
+    ok = Win pl n
+
 -------------------------------------------------------------------------------
 -- Compute probability of win
 -------------------------------------------------------------------------------
-
-type Prob = Double
-
-type Adversary p = [p] -> [Prob]
-
-meanAdversary :: Adversary p
-meanAdversary ps = replicate n (1.0 / fromIntegral n)
-  where
-    n = length ps
 
 probWin :: Ord p => Game p -> Player -> Adversary p -> Player -> p -> Prob
 probWin game wpl adv = curry (fst . Graph.dfs pre post)
   where
     pre (pl,p) =
         case game pl p of
-          Left e -> Left (if isWin e then 1.0 else 0.0)
+          Left e -> Left (if better wpl e Draw then 1.0 else 0.0)
           Right ps -> Right (map ((,) (turn pl)) ps)
 
     post (pl,_) pws =
         if pl == wpl then maximum ws
-        else sum (zipWith (*) (adv ps) ws)
+        else mean (zip (probAdversary adv ps) ws)
       where
         (pps,mws) = unzip pws
         ps = map snd pps
         ws = map (fromMaybe 0.0) mws
-
-    isWin (Win pl _) = pl == wpl
-    isWin _ = False
