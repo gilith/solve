@@ -12,6 +12,7 @@ module Main
 --  ( main )
 where
 
+import Data.Set (Set)
 --import qualified System.Environment as Environment
 
 import qualified Solve.FoxHounds as FoxHounds
@@ -48,6 +49,11 @@ fhFoxBox n =
       FoxHounds.foxBoxAdversary
       (fhStopLoss Player1 n)
 
+fhValidateFoxBox :: Set (FoxHounds.Pos,(Eval,FoxHounds.Pos),(Eval,FoxHounds.Pos))
+fhValidateFoxBox = Game.validateAdversary FoxHounds.game FoxHounds.solution Player1 adv Player1 FoxHounds.initial
+  where
+    adv =Game.orelseAdversary FoxHounds.foxBoxAdversary Game.uniformAdversary
+
 fhProbWin :: Int -> (Prob,Prob,Prob)
 fhProbWin n =
     (FoxHounds.probWin Player1 (fhStopLoss Player1 n),
@@ -61,11 +67,11 @@ fhProbDepth = map f [0..fhDepth]
 
 showProbDepth :: [(Int,Prob,Prob,Prob)] -> String
 showProbDepth ps =
-    showTable (["StopLoss depth", "Fox win", "Fox win*", "Hounds win"] :
+    showTable (["Stop loss", "Fox win", "Fox win*", "Hounds win"] :
                [] :
                map f ps)
   where
-    f (n,p1,p2,q) = ["n = " ++ show n, showProb p1, showProb p2, showProb q]
+    f (n,p1,p2,q) = ["depth " ++ show n, showProb p1, showProb p2, showProb q]
 
 -------------------------------------------------------------------------------
 -- Top-level
@@ -82,6 +88,8 @@ main = do
     putStrLn ""
     putStrLn $ "Board size = " ++ show FoxHounds.boardSize
     putStrLn $ "Solution = " ++ show (fhSolution)
+    putStrLn ""
+    putStrLn $ "Bad fox-box strategy = " ++ show fhValidateFoxBox
     putStrLn ""
     putStrLn $ showProbDepth fhProbDepth
     ___

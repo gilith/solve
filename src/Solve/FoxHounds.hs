@@ -43,7 +43,8 @@ boardSize = 2 * packSize
 onBoard :: Coord -> Bool
 onBoard (Coord x y) =
     0 <= x && x < boardSize &&
-    0 <= y && y < boardSize
+    0 <= y && y < boardSize &&
+    (x + y) `mod` 2 == 1
 
 rankAdjacent :: Int -> Int -> [Coord]
 rankAdjacent x y = filter onBoard [Coord (x - 1) y, Coord (x + 1) y]
@@ -71,7 +72,19 @@ data Pos =
     Pos
       {fox :: Coord,
        hounds :: Set Coord}
-  deriving (Eq,Ord,Show)
+  deriving (Eq,Ord)
+
+instance Show Pos where
+  show p = "\n" ++ side ++ concat (map row (reverse inds)) ++ side
+    where
+      side = "+" ++ replicate boardSize '-' ++ "+\n"
+      inds = [0..(boardSize-1)]
+      row y = "|" ++ map (entry . flip Coord y) inds ++ "|\n"
+      entry c =
+        if c == fox p then 'F'
+        else if Set.member c (hounds p) then 'H'
+        else if onBoard c then '*'
+        else ' '
 
 initial :: Pos
 initial =

@@ -11,9 +11,12 @@ portability: portable
 module Solve.Game
 where
 
+import Data.List (partition)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe,mapMaybe)
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 import qualified Solve.Graph as Graph
 import Solve.Util
@@ -58,6 +61,12 @@ instance Ord Eval where
 better :: Ord a => Player -> a -> a -> Bool
 better Player1 x y = x > y
 better Player2 x y = x < y
+
+betterEval :: Player -> Eval -> Eval -> Bool
+betterEval pl (Win pl1 _) (Win pl2 _) = pl1 == pl && pl2 /= pl
+betterEval pl (Win pl1 _) Draw = pl1 == pl
+betterEval pl Draw (Win pl2 _) = pl2 /= pl
+betterEval _ Draw Draw = False
 
 best :: Ord a => Player -> [a] -> a
 best Player1 = maximum
@@ -115,9 +124,12 @@ type Adversary p = [p] -> [Weight]
 probAdversary :: Adversary p -> [p] -> [Prob]
 probAdversary adv = normalize . adv
 
+partitionZeroAdversary :: Adversary p -> [p] -> ([p],[p])
+partitionZeroAdversary adv ps = (map snd zs, map snd ns)
+  where (zs,ns) = partition (zeroProb . fst) $ zip (adv ps) ps
+
 pruneZeroAdversary :: Adversary p -> [p] -> [p]
-pruneZeroAdversary adv ps =
-    map snd $ filter (nonZeroProb . fst) $ zip (adv ps) ps
+pruneZeroAdversary adv = snd . partitionZeroAdversary adv
 
 combineAdversary :: Adversary p -> Adversary p -> Adversary p
 combineAdversary adv1 adv2 ps = zipWith (*) (adv1 ps) (adv2 ps)
@@ -146,6 +158,37 @@ stopLossAdversary sol pl n = filterAdversary f
   where
     f p = let e = evalUnsafe sol pl p in not (better pl e ok)
     ok = Win pl n
+
+-------------------------------------------------------------------------------
+-- Validate adversary
+-------------------------------------------------------------------------------
+
+validateAdversary :: Ord p => Game p -> Solve p -> Player -> Adversary p -> Player -> p -> Set (p,(Eval,p),(Eval,p))
+validateAdversary game sol wpl adv = curry (fst . Graph.dfs pre post)
+  where
+    pre (pl,p) =
+        case game pl p of
+          Left _ -> Left Set.empty
+          Right ps -> case prune pl ps of
+                        Left (z,n) -> Left (Set.singleton (p,z,n))
+                        Right ps' -> Right (map ((,) (turn pl)) ps')
+
+    post _ = Set.unions . mapMaybe snd
+
+    prune pl ps | pl == wpl = Right ps
+    prune pl ps | otherwise =
+        if null ns then error "adversary pruned away all moves"
+        else if null zs then Right ns
+        else if betterEval pl (fst z) (fst n) then Left (z,n)
+        else Right ns
+      where
+        z = bestAdv zs
+        n = bestAdv ns
+        (zs,ns) = partitionZeroAdversary adv ps
+
+    bestAdv = best (turn wpl) . map evalAdv
+
+    evalAdv p = (evalUnsafe sol wpl p, p)
 
 -------------------------------------------------------------------------------
 -- Compute probability of win
