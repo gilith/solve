@@ -15,7 +15,7 @@ where
 --import qualified System.Environment as Environment
 
 import qualified Solve.FoxHounds as FoxHounds
-import Solve.Game (Eval(..),Player(..))
+import Solve.Game (Adversary,Eval(..),Player(..))
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -36,23 +36,36 @@ fhDepth = case fhSolution of
              Win _ n -> n
              _ -> error "no winner"
 
-fhProbWin :: Player -> Int -> Prob
-fhProbWin pl n = FoxHounds.probWin pl adv
-  where
-    adv = Game.orelseAdversary
-            (FoxHounds.stopLossAdversary pl n)
-            Game.uniformAdversary
+fhStopLoss :: Player -> Int -> Adversary FoxHounds.Pos
+fhStopLoss pl n =
+    Game.orelseAdversary
+      (FoxHounds.stopLossAdversary pl n)
+      Game.uniformAdversary
 
-fhProbDepth :: [(Int,Prob,Prob)]
+fhFoxBox :: Int -> Adversary FoxHounds.Pos
+fhFoxBox n =
+    Game.orelseAdversary
+      FoxHounds.foxBoxAdversary
+      (fhStopLoss Player1 n)
+
+fhProbWin :: Int -> (Prob,Prob,Prob)
+fhProbWin n =
+    (FoxHounds.probWin Player1 (fhStopLoss Player1 n),
+     FoxHounds.probWin Player1 (fhFoxBox n),
+     FoxHounds.probWin Player2 (fhStopLoss Player2 n))
+
+fhProbDepth :: [(Int,Prob,Prob,Prob)]
 fhProbDepth = map f [0..fhDepth]
   where
-    f n = (n, fhProbWin Player1 n, fhProbWin Player2 n)
+    f n = let (p1,p2,q) = fhProbWin n in (n,p1,p2,q)
 
-showProbDepth :: [(Int,Prob,Prob)] -> String
+showProbDepth :: [(Int,Prob,Prob,Prob)] -> String
 showProbDepth ps =
-    showTable (["Adversary", "Player1", "Player2"] : [] : map f ps)
+    showTable (["StopLoss depth", "Fox win", "Fox win*", "Hounds win"] :
+               [] :
+               map f ps)
   where
-    f (n,p,q) = ["n = " ++ show n, showProb p, showProb q]
+    f (n,p1,p2,q) = ["n = " ++ show n, showProb p1, showProb p2, showProb q]
 
 -------------------------------------------------------------------------------
 -- Top-level

@@ -57,6 +57,12 @@ houndAdjacent (Coord x y) = rankAdjacent x (y + 1)
 houndsReachable :: Set Coord -> Set Coord
 houndsReachable = transitiveClosure houndAdjacent . Set.toList
 
+foxReachable :: Set Coord -> Coord -> Set Coord
+foxReachable hs =
+    transitiveClosure unhounded . singleton
+  where
+    unhounded = filter (flip Set.notMember hs) . foxAdjacent
+
 -------------------------------------------------------------------------------
 -- Positions
 -------------------------------------------------------------------------------
@@ -80,6 +86,12 @@ occupied p c = c == fox p || Set.member c (hounds p)
 
 empty :: Pos -> Coord -> Bool
 empty p = not . occupied p
+
+foxBox :: Pos -> Bool
+foxBox p = Set.isSubsetOf f h
+  where
+    f = foxReachable (hounds p) (fox p)
+    h = houndsReachable (hounds p)
 
 -------------------------------------------------------------------------------
 -- Legal moves
@@ -138,6 +150,9 @@ solution = snd (Game.solve game Player1 initial)
 
 stopLossAdversary :: Player -> Int -> Adversary Pos
 stopLossAdversary = Game.stopLossAdversary solution
+
+foxBoxAdversary :: Adversary Pos
+foxBoxAdversary = Game.filterAdversary foxBox
 
 -------------------------------------------------------------------------------
 -- Win probability
