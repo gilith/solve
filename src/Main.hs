@@ -49,12 +49,17 @@ fhStopLossFoxBox n =
       (fhStopLoss Player2 n)
       (Game.tryStrategy FoxHounds.foxBoxStrategy)
 
+fhFoxBoxStrategyFail :: StrategyFail FoxHounds.Pos
+fhFoxBoxStrategyFail =
+    FoxHounds.validateStrategy Player2
+      (Game.tryStrategy FoxHounds.foxBoxStrategy)
+
 fhShowStrategyFail :: StrategyFail FoxHounds.Pos -> String
 fhShowStrategyFail ps =
     show n ++ (if n == 0 then "" else "\n" ++ tableFails)
   where
     n = Set.size ps
-    showPos (e,p) = tail (show p) ++ show e
+    showPos (e,p) = tail (show p) ++ FoxHounds.ppEval e
     rowsFail (a,b,c) =
         [] : zipWith3 tripleton (linesPos a) (linesPos b) (linesPos c)
       where
@@ -101,8 +106,8 @@ main = do
     putStrLn ""
     putStrLn $ "Board size: " ++ show FoxHounds.boardSize
     putStrLn $ "Reachable positions: " ++ show fhReachable
-    putStrLn $ "Solution: " ++ show fhSolution ++ "\n"
-    putStrLn $ "FoxBox strategy failure positions: " ++ fhShowStrategyFail FoxHounds.foxBoxStrategyFail
+    putStrLn $ "Solution: " ++ FoxHounds.ppEval fhSolution ++ "\n"
+    putStrLn $ "FoxBox strategy failure positions: " ++ fhShowStrategyFail fhFoxBoxStrategyFail
     putStrLn $ "Win probabilities against stop-loss strategies of various depths:"
     putStrLn $ fhShowProbDepth fhProbDepth
     ___

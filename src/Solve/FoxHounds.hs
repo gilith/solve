@@ -15,7 +15,7 @@ import qualified Data.Char as Char
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Game,Player(..),Solve,Strategy,StrategyFail)
+import Solve.Game (Eval(..),Game,Player(..),Solve,Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -171,9 +171,9 @@ foxBoxStrategy = Game.filterStrategy foxBox
 -- Validating strategies
 -------------------------------------------------------------------------------
 
-foxBoxStrategyFail :: StrategyFail Pos
-foxBoxStrategyFail =
-    Game.strategyFail game solution Player2 foxBoxStrategy Player1 initial
+validateStrategy :: Player -> Strategy Pos -> StrategyFail Pos
+validateStrategy pl str =
+    Game.validateStrategy game solution pl str Player1 initial
 
 -------------------------------------------------------------------------------
 -- Win probability
@@ -181,3 +181,15 @@ foxBoxStrategyFail =
 
 probWin :: Player -> Strategy Pos -> Prob
 probWin pl adv = Game.probWin game pl adv Player1 initial
+
+-------------------------------------------------------------------------------
+-- Pretty printing
+-------------------------------------------------------------------------------
+
+ppPlayer :: Player -> String
+ppPlayer Player1 = "Fox"
+ppPlayer Player2 = "Hounds"
+
+ppEval :: Eval -> String
+ppEval (Win pl n) = ppPlayer pl ++ " win in " ++ show n
+ppEval Draw = error "draws are impossible in this game"

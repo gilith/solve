@@ -25,7 +25,9 @@ type DfsPre n a v = n -> Either v [(a,n)]
 
 type DfsPost n a v = n -> [((a,n), Maybe v)] -> v
 
-dfs :: Ord n => DfsPre n a v -> DfsPost n a v -> n -> (v, Map n v)
+type DfsResult n v = Map n v
+
+dfs :: Ord n => DfsPre n a v -> DfsPost n a v -> n -> (v, DfsResult n v)
 dfs pre post = go Set.empty Map.empty
   where
     go br db n =

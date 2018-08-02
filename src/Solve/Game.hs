@@ -11,7 +11,6 @@ portability: portable
 module Solve.Game
 where
 
-import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe,mapMaybe)
 import Data.Set (Set)
@@ -100,13 +99,14 @@ move game pl p =
 -- Depth-first search
 -------------------------------------------------------------------------------
 
-type DfsPre p a v = Player -> p -> Either v [(a,p)]
+type DfsPre p a v = Player -> Graph.DfsPre p a v
 
-type DfsPost p a v = Player -> p -> [((a,p), Maybe v)] -> v
+type DfsPost p a v = Player -> Graph.DfsPost p a v
 
-type DfsPos p v = Map (Player,p) v
+type DfsResult p v = Graph.DfsResult (Player,p) v
 
-dfs :: Ord p => DfsPre p a v -> DfsPost p a v -> Player -> p -> (v, DfsPos p v)
+dfs :: Ord p => DfsPre p a v -> DfsPost p a v ->
+       Player -> p -> (v, DfsResult p v)
 dfs pre post = curry (Graph.dfs pre' post')
   where
     pre' (pl,p) =
@@ -124,7 +124,7 @@ dfs pre post = curry (Graph.dfs pre' post')
 -- Game solution
 -------------------------------------------------------------------------------
 
-type Solve p = DfsPos p Eval
+type Solve p = DfsResult p Eval
 
 solve :: Ord p => Game p -> Player -> p -> (Eval, Solve p)
 solve game = dfs pre post
@@ -159,16 +159,19 @@ type Weight = Double
 type Strategy p = [(Weight,p)] -> [(Weight,p)]
 
 applyStrategy :: Strategy p -> [p] -> [(Weight,p)]
-applyStrategy str = str . map ((,) 1.0)
+applyStrategy str ps =
+    case str $ map ((,) 1.0) ps of
+      [] -> error "strategy pruned away all moves"
+      wps -> wps
 
-noStrategy :: [p] -> [(Weight,p)]
-noStrategy = map ((,) undefined)
+weightlessStrategy :: [p] -> [(Weight,p)]
+weightlessStrategy = map ((,) undefined)
 
 idStrategy :: Strategy p
 idStrategy = id
 
-emptyStrategy :: Strategy p
-emptyStrategy = const []
+noStrategy :: Strategy p
+noStrategy = const []
 
 thenStrategy :: Strategy p -> Strategy p -> Strategy p
 thenStrategy str1 str2 = str2 . str1
@@ -198,16 +201,13 @@ stopLossStrategy sol pl n = filterStrategy f
 
 type StrategyFail p = Set ((Eval,p),(Eval,p),(Eval,p))
 
-strategyFail :: Ord p => Game p -> Solve p -> Player -> Strategy p -> Player -> p -> StrategyFail p
-strategyFail game sol spl str = \ipl -> fst . dfs pre post ipl
+validateStrategy :: Ord p => Game p -> Solve p -> Player -> Strategy p -> Player -> p -> StrategyFail p
+validateStrategy game sol spl str = \ipl -> fst . dfs pre post ipl
   where
     pre pl p =
         case game pl p of
           Left _ -> Left Set.empty
-          Right ps ->
-              case strategize pl ps of
-                [] -> Left Set.empty  -- this strategy pruned away all moves
-                wps -> Right wps
+          Right ps -> Right (strategize pl ps)
 
     post pl p pfs =
         if pl /= spl then fs
@@ -219,7 +219,7 @@ strategyFail game sol spl str = \ipl -> fst . dfs pre post ipl
         z = bestStr (move game pl p)
         n = bestStr (map (snd . fst) pfs)
 
-    strategize pl = if pl == spl then applyStrategy str else noStrategy
+    strategize pl = if pl == spl then applyStrategy str else weightlessStrategy
 
     bestStr = best spl . map (evalSol (turn spl))
 
@@ -246,4 +246,4 @@ probWin game wpl adv = \ipl -> fst . dfs pre post ipl
         ws = map fst wps
         ps = map (fromMaybe 0.0) mps
 
-    strategize pl = if pl == wpl then noStrategy else applyStrategy adv
+    strategize pl = if pl == wpl then weightlessStrategy else applyStrategy adv
