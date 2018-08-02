@@ -108,7 +108,7 @@ main = do
     putStrLn $ "Reachable positions: " ++ show fhReachable
     putStrLn $ "Solution: " ++ FoxHounds.ppEval fhSolution ++ "\n"
     putStrLn $ "FoxBox strategy failure positions: " ++ fhShowStrategyFail fhFoxBoxStrategyFail
-    putStrLn $ "Win probabilities against stop-loss strategies of various depths:"
+    putStrLn $ "Win probabilities against stop-loss strategies of different depths:"
     putStrLn $ fhShowProbDepth fhProbDepth
     ___
     return ()
