@@ -12,7 +12,6 @@ module Main
 --  ( main )
 where
 
-import Data.Set (Set)
 import qualified Data.Set as Set
 --import qualified System.Environment as Environment
 
@@ -42,16 +41,13 @@ fhDepth = case fhSolution of
              _ -> error "no winner"
 
 fhStopLoss :: Player -> Int -> Strategy FoxHounds.Pos
-fhStopLoss pl n =
-    Game.orelseStrategy
-      (FoxHounds.stopLossStrategy pl n)
-      Game.uniformStrategy
+fhStopLoss pl n = Game.tryStrategy (FoxHounds.stopLossStrategy pl n)
 
 fhStopLossFoxBox :: Int -> Strategy FoxHounds.Pos
 fhStopLossFoxBox n =
-    Game.orelseStrategy
-      FoxHounds.foxBoxStrategy
+    Game.thenStrategy
       (fhStopLoss Player2 n)
+      (Game.tryStrategy FoxHounds.foxBoxStrategy)
 
 fhShowStrategyFail :: StrategyFail FoxHounds.Pos -> String
 fhShowStrategyFail ps =
@@ -81,11 +77,14 @@ fhProbDepth = map f [0..fhDepth]
 fhShowProbDepth :: [(Int,Prob,Prob,Prob)] -> String
 fhShowProbDepth ps =
     showTable
-      (["Stop loss", "Fox win", "Fox win*", "Hounds win"] :
+      ([] :
+       ["Stop-loss", "Fox wins", "Fox wins", "  Hounds"] :
+       ["depth", "", "(FoxBox)", "win"] :
        [] :
-       map row ps)
+       map row ps ++
+       [[]])
   where
-    row (n,f1,f2,h) = ["depth " ++ show n, showProb f1, showProb f2, showProb h]
+    row (n,f1,f2,h) = [show n, showProb f1, showProb f2, showProb h]
 
 -------------------------------------------------------------------------------
 -- Top-level
@@ -98,13 +97,13 @@ main :: IO ()
 main = do
     --args <- Environment.getArgs
     ___
-    putStrLn "Fox & Hounds:"
+    putStrLn "FOX & HOUNDS"
     putStrLn ""
-    putStrLn $ "Board size = " ++ show FoxHounds.boardSize
-    putStrLn $ "Reachable positions = " ++ show fhReachable
-    putStrLn $ "Solution = " ++ show fhSolution
-    putStrLn $ "FoxBox strategy failure positions = " ++ fhShowStrategyFail FoxHounds.foxBoxStrategyFail
-    putStrLn ""
+    putStrLn $ "Board size: " ++ show FoxHounds.boardSize
+    putStrLn $ "Reachable positions: " ++ show fhReachable
+    putStrLn $ "Solution: " ++ show fhSolution ++ "\n"
+    putStrLn $ "FoxBox strategy failure positions: " ++ fhShowStrategyFail FoxHounds.foxBoxStrategyFail
+    putStrLn $ "Win probabilities against stop-loss strategies of various depths:"
     putStrLn $ fhShowProbDepth fhProbDepth
     ___
     return ()

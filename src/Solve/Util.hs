@@ -74,14 +74,18 @@ normalize :: [Double] -> [Prob]
 normalize l = map (* c) l
   where c = 1.0 / sum l
 
-mean :: [(Prob,Double)] -> Double
-mean = sum . map (uncurry (*))
+expectation :: [Prob] -> [Double] -> Double
+expectation pd = sum . zipWith (*) pd
 
-zeroProb :: Prob -> Bool
-zeroProb p = p <= 0.0
+isZeroProb :: Prob -> Bool
+isZeroProb p = p <= 0.0
 
 nonZeroProb :: Prob -> Bool
-nonZeroProb = not . zeroProb
+nonZeroProb = not . isZeroProb
+
+boolProb :: Bool -> Prob
+boolProb True = 1.0
+boolProb False = 0.0
 
 showProb :: Prob -> String
 showProb p = showFFloat (Just 3) p ""

@@ -21,11 +21,11 @@ import Solve.Util
 -- Depth-first search
 -------------------------------------------------------------------------------
 
-type DfsPre n v = n -> Either v [n]
+type DfsPre n a v = n -> Either v [(a,n)]
 
-type DfsPost n v = n -> [(n, Maybe v)] -> v
+type DfsPost n a v = n -> [((a,n), Maybe v)] -> v
 
-dfs :: Ord n => DfsPre n v -> DfsPost n v -> n -> (v, Map n v)
+dfs :: Ord n => DfsPre n a v -> DfsPost n a v -> n -> (v, Map n v)
 dfs pre post = go Set.empty Map.empty
   where
     go br db n =
@@ -36,11 +36,11 @@ dfs pre post = go Set.empty Map.empty
               (v,db') = evalNode br db n (pre n)
 
     evalNode _ db _ (Left v) = (v,db)
-    evalNode br db n (Right ns) = (post n nvs, db')
+    evalNode br db n (Right ans) = (post n nvs, db')
       where
-        (nvs,db') = mapLR (evalChild (Set.insert n br)) db ns
+        (nvs,db') = mapLR (evalChild (Set.insert n br)) db ans
 
-    evalChild br db n | Set.member n br = ((n,Nothing),db)
-    evalChild br db n | otherwise = ((n, Just v), db')
+    evalChild br db (a,n) | Set.member n br = (((a,n),Nothing),db)
+    evalChild br db (a,n) | otherwise = (((a,n), Just v), db')
       where
         (v,db') = go br db n
