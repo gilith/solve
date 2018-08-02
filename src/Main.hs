@@ -13,16 +13,20 @@ module Main
 where
 
 import Data.Set (Set)
+import qualified Data.Set as Set
 --import qualified System.Environment as Environment
 
 import qualified Solve.FoxHounds as FoxHounds
-import Solve.Game (Adversary,Eval(..),Player(..))
+import Solve.Game (Eval(..),Player(..),Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
 -------------------------------------------------------------------------------
 -- Fox & hounds
 -------------------------------------------------------------------------------
+
+fhReachable :: Int
+fhReachable = Game.reachable FoxHounds.solution
 
 fhSolution :: Eval
 fhSolution = Game.evalUnsafe FoxHounds.solution Player1 FoxHounds.initial
@@ -37,41 +41,51 @@ fhDepth = case fhSolution of
              Win _ n -> n
              _ -> error "no winner"
 
-fhStopLoss :: Player -> Int -> Adversary FoxHounds.Pos
+fhStopLoss :: Player -> Int -> Strategy FoxHounds.Pos
 fhStopLoss pl n =
-    Game.orelseAdversary
-      (FoxHounds.stopLossAdversary pl n)
-      Game.uniformAdversary
+    Game.orelseStrategy
+      (FoxHounds.stopLossStrategy pl n)
+      Game.uniformStrategy
 
-fhFoxBox :: Int -> Adversary FoxHounds.Pos
-fhFoxBox n =
-    Game.orelseAdversary
-      FoxHounds.foxBoxAdversary
-      (fhStopLoss Player1 n)
+fhStopLossFoxBox :: Int -> Strategy FoxHounds.Pos
+fhStopLossFoxBox n =
+    Game.orelseStrategy
+      FoxHounds.foxBoxStrategy
+      (fhStopLoss Player2 n)
 
-fhValidateFoxBox :: Set (FoxHounds.Pos,(Eval,FoxHounds.Pos),(Eval,FoxHounds.Pos))
-fhValidateFoxBox = Game.validateAdversary FoxHounds.game FoxHounds.solution Player1 adv Player1 FoxHounds.initial
+fhShowStrategyFail :: StrategyFail FoxHounds.Pos -> String
+fhShowStrategyFail ps =
+    show n ++ (if n == 0 then "" else "\n" ++ tableFails)
   where
-    adv =Game.orelseAdversary FoxHounds.foxBoxAdversary Game.uniformAdversary
+    n = Set.size ps
+    showPos (e,p) = tail (show p) ++ show e
+    rowsFail (a,b,c) =
+        [] : zipWith3 tripleton (linesPos a) (linesPos b) (linesPos c)
+      where
+        linesPos = lines . showPos
+    header = ["Position","Strategy move","Better move"]
+    tableFails =
+        showTable ([] : header : concat (map rowsFail (Set.toList ps)) ++ [[]])
 
 fhProbWin :: Int -> (Prob,Prob,Prob)
 fhProbWin n =
-    (FoxHounds.probWin Player1 (fhStopLoss Player1 n),
-     FoxHounds.probWin Player1 (fhFoxBox n),
-     FoxHounds.probWin Player2 (fhStopLoss Player2 n))
+    (FoxHounds.probWin Player1 (fhStopLoss Player2 n),
+     FoxHounds.probWin Player1 (fhStopLossFoxBox n),
+     FoxHounds.probWin Player2 (fhStopLoss Player1 n))
 
 fhProbDepth :: [(Int,Prob,Prob,Prob)]
 fhProbDepth = map f [0..fhDepth]
   where
     f n = let (p1,p2,q) = fhProbWin n in (n,p1,p2,q)
 
-showProbDepth :: [(Int,Prob,Prob,Prob)] -> String
-showProbDepth ps =
-    showTable (["Stop loss", "Fox win", "Fox win*", "Hounds win"] :
-               [] :
-               map f ps)
+fhShowProbDepth :: [(Int,Prob,Prob,Prob)] -> String
+fhShowProbDepth ps =
+    showTable
+      (["Stop loss", "Fox win", "Fox win*", "Hounds win"] :
+       [] :
+       map row ps)
   where
-    f (n,p1,p2,q) = ["depth " ++ show n, showProb p1, showProb p2, showProb q]
+    row (n,f1,f2,h) = ["depth " ++ show n, showProb f1, showProb f2, showProb h]
 
 -------------------------------------------------------------------------------
 -- Top-level
@@ -87,11 +101,11 @@ main = do
     putStrLn "Fox & Hounds:"
     putStrLn ""
     putStrLn $ "Board size = " ++ show FoxHounds.boardSize
-    putStrLn $ "Solution = " ++ show (fhSolution)
+    putStrLn $ "Reachable positions = " ++ show fhReachable
+    putStrLn $ "Solution = " ++ show fhSolution
+    putStrLn $ "FoxBox strategy failure positions = " ++ fhShowStrategyFail FoxHounds.foxBoxStrategyFail
     putStrLn ""
-    putStrLn $ "Bad fox-box strategy = " ++ show fhValidateFoxBox
-    putStrLn ""
-    putStrLn $ showProbDepth fhProbDepth
+    putStrLn $ fhShowProbDepth fhProbDepth
     ___
     return ()
   where

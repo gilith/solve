@@ -104,6 +104,9 @@ solve game = curry (Graph.dfs pre post)
 
     post (pl,_) = delay . best pl . map (fromMaybe Draw . snd)
 
+reachable :: Solve p -> Int
+reachable = Map.size
+
 eval :: Ord p => Solve p -> Player -> p -> Maybe Eval
 eval sol pl p = Map.lookup (pl,p) sol
 
@@ -114,87 +117,90 @@ evalUnsafe sol pl p =
       Nothing -> error "position is unreachable"
 
 -------------------------------------------------------------------------------
--- Adversaries
+-- Strategies
 -------------------------------------------------------------------------------
 
 type Weight = Double
 
-type Adversary p = [p] -> [Weight]
+type Strategy p = [p] -> [Weight]
 
-probAdversary :: Adversary p -> [p] -> [Prob]
-probAdversary adv = normalize . adv
+probStrategy :: Strategy p -> [p] -> [Prob]
+probStrategy adv = normalize . adv
 
-partitionZeroAdversary :: Adversary p -> [p] -> ([p],[p])
-partitionZeroAdversary adv ps = (map snd zs, map snd ns)
+partitionZeroStrategy :: Strategy p -> [p] -> ([p],[p])
+partitionZeroStrategy adv ps = (map snd zs, map snd ns)
   where (zs,ns) = partition (zeroProb . fst) $ zip (adv ps) ps
 
-pruneZeroAdversary :: Adversary p -> [p] -> [p]
-pruneZeroAdversary adv = snd . partitionZeroAdversary adv
+pruneZeroStrategy :: Strategy p -> [p] -> [p]
+pruneZeroStrategy adv = snd . partitionZeroStrategy adv
 
-combineAdversary :: Adversary p -> Adversary p -> Adversary p
-combineAdversary adv1 adv2 ps = zipWith (*) (adv1 ps) (adv2 ps)
+combineStrategy :: Strategy p -> Strategy p -> Strategy p
+combineStrategy adv1 adv2 ps = zipWith (*) (adv1 ps) (adv2 ps)
 
-orelseAdversary :: Adversary p -> Adversary p -> Adversary p
-orelseAdversary adv1 adv2 ps =
+orelseStrategy :: Strategy p -> Strategy p -> Strategy p
+orelseStrategy adv1 adv2 ps =
     if sum w1 <= 0.0 then w2 else w1
   where
     w1 = adv1 ps
     w2 = adv2 ps
 
-weightAdversary :: (p -> Weight) -> Adversary p
-weightAdversary w = map w
+weightStrategy :: (p -> Weight) -> Strategy p
+weightStrategy w = map w
 
-uniformAdversary :: Adversary p
-uniformAdversary = weightAdversary (const 1.0)
+uniformStrategy :: Strategy p
+uniformStrategy = weightStrategy (const 1.0)
 
-filterAdversary :: (p -> Bool) -> Adversary p
-filterAdversary p = weightAdversary (b2w . p)
+filterStrategy :: (p -> Bool) -> Strategy p
+filterStrategy p = weightStrategy (b2w . p)
   where
     b2w True = 1.0
     b2w False = 0.0
 
-stopLossAdversary :: Ord p => Solve p -> Player -> Int -> Adversary p
-stopLossAdversary sol pl n = filterAdversary f
+stopLossStrategy :: Ord p => Solve p -> Player -> Int -> Strategy p
+stopLossStrategy sol pl n = filterStrategy f
   where
-    f p = let e = evalUnsafe sol pl p in not (better pl e ok)
-    ok = Win pl n
+    f p = let e = evalUnsafe sol pl' p in not (better pl' e ok)
+    ok = Win pl' n
+    pl' = turn pl
 
 -------------------------------------------------------------------------------
--- Validate adversary
+-- Validating strategies
 -------------------------------------------------------------------------------
 
-validateAdversary :: Ord p => Game p -> Solve p -> Player -> Adversary p -> Player -> p -> Set (p,(Eval,p),(Eval,p))
-validateAdversary game sol wpl adv = curry (fst . Graph.dfs pre post)
+type StrategyFail p = Set ((Eval,p),(Eval,p),(Eval,p))
+
+strategyFail :: Ord p => Game p -> Solve p -> Player -> Strategy p -> Player -> p -> StrategyFail p
+strategyFail game sol spl str = curry (fst . Graph.dfs pre post)
   where
     pre (pl,p) =
         case game pl p of
           Left _ -> Left Set.empty
           Right ps -> case prune pl ps of
-                        Left (z,n) -> Left (Set.singleton (p,z,n))
+                        Left (z,n) -> Left (Set.singleton (evalStr pl p, n, z))
                         Right ps' -> Right (map ((,) (turn pl)) ps')
 
     post _ = Set.unions . mapMaybe snd
 
-    prune pl ps | pl == wpl = Right ps
+    prune pl ps | pl /= spl = Right ps
     prune pl ps | otherwise =
-        if null ns then error "adversary pruned away all moves"
+        if null ns then Right ps  -- this strategy pruned away all moves
         else if null zs then Right ns
         else if betterEval pl (fst z) (fst n) then Left (z,n)
         else Right ns
       where
-        z = bestAdv zs
-        n = bestAdv ns
-        (zs,ns) = partitionZeroAdversary adv ps
+        z = bestStr zs
+        n = bestStr ns
+        (zs,ns) = partitionZeroStrategy str ps
 
-    bestAdv = best (turn wpl) . map evalAdv
+    bestStr = best spl . map (evalStr (turn spl))
 
-    evalAdv p = (evalUnsafe sol wpl p, p)
+    evalStr pl p = (evalUnsafe sol pl p, p)
 
 -------------------------------------------------------------------------------
 -- Compute probability of win
 -------------------------------------------------------------------------------
 
-probWin :: Ord p => Game p -> Player -> Adversary p -> Player -> p -> Prob
+probWin :: Ord p => Game p -> Player -> Strategy p -> Player -> p -> Prob
 probWin game wpl adv = curry (fst . Graph.dfs pre post)
   where
     pre (pl,p) =
@@ -202,12 +208,13 @@ probWin game wpl adv = curry (fst . Graph.dfs pre post)
           Left e -> Left (if better wpl e Draw then 1.0 else 0.0)
           Right ps -> Right (map ((,) (turn pl)) (prune pl ps))
 
+    post _ [] = error "no moves"
     post (pl,_) pws =
         if pl == wpl then maximum ws
-        else mean (zip (probAdversary adv ps) ws)
+        else mean (zip (probStrategy adv ps) ws)
       where
         (pps,mws) = unzip pws
         ps = map snd pps
         ws = map (fromMaybe 0.0) mws
 
-    prune pl ps = if pl == wpl then ps else pruneZeroAdversary adv ps
+    prune pl ps = if pl == wpl then ps else pruneZeroStrategy adv ps

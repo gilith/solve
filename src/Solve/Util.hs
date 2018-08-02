@@ -16,11 +16,17 @@ import qualified Data.Set as Set
 import Numeric (showFFloat)
 
 -------------------------------------------------------------------------------
--- Singleton lists
+-- Making lists
 -------------------------------------------------------------------------------
 
 singleton :: a -> [a]
 singleton x = [x]
+
+doubleton :: a -> a -> [a]
+doubleton x y = [x,y]
+
+tripleton :: a -> a -> a -> [a]
+tripleton x y z = [x,y,z]
 
 -------------------------------------------------------------------------------
 -- Mapping with state over a list

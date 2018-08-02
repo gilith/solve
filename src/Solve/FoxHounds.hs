@@ -15,7 +15,7 @@ import qualified Data.Char as Char
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Adversary,Game,Player(..),Solve)
+import Solve.Game (Game,Player(..),Solve,Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -158,18 +158,26 @@ solution :: Solve Pos
 solution = snd (Game.solve game Player1 initial)
 
 -------------------------------------------------------------------------------
--- Adversaries
+-- Strategies
 -------------------------------------------------------------------------------
 
-stopLossAdversary :: Player -> Int -> Adversary Pos
-stopLossAdversary = Game.stopLossAdversary solution
+stopLossStrategy :: Player -> Int -> Strategy Pos
+stopLossStrategy = Game.stopLossStrategy solution
 
-foxBoxAdversary :: Adversary Pos
-foxBoxAdversary = Game.filterAdversary foxBox
+foxBoxStrategy :: Strategy Pos
+foxBoxStrategy = Game.filterStrategy foxBox
+
+-------------------------------------------------------------------------------
+-- Validating strategies
+-------------------------------------------------------------------------------
+
+foxBoxStrategyFail :: StrategyFail Pos
+foxBoxStrategyFail =
+    Game.strategyFail game solution Player2 foxBoxStrategy Player1 initial
 
 -------------------------------------------------------------------------------
 -- Win probability
 -------------------------------------------------------------------------------
 
-probWin :: Player -> Adversary Pos -> Prob
+probWin :: Player -> Strategy Pos -> Prob
 probWin pl adv = Game.probWin game pl adv Player1 initial
