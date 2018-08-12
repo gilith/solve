@@ -12,6 +12,7 @@ module Solve.FoxHounds
 where
 
 import qualified Data.Char as Char
+import Data.List (sort)
 import Data.Set (Set)
 import qualified Data.Set as Set
 
@@ -26,9 +27,17 @@ import Solve.Util
 packSize :: Int
 packSize = 4
 
+boardSize :: Int
+boardSize = 2 * packSize
+
+numSquares :: Int
+numSquares = packSize * boardSize
+
 -------------------------------------------------------------------------------
 -- Coordinates
 -------------------------------------------------------------------------------
+
+type Idx = Int
 
 data Coord =
     Coord Int Int
@@ -36,9 +45,6 @@ data Coord =
 
 instance Show Coord where
   show (Coord x y) = Char.chr (Char.ord 'a' + x) : show (y + 1)
-
-boardSize :: Int
-boardSize = 2 * packSize
 
 onBoard :: Coord -> Bool
 onBoard (Coord x y) =
@@ -63,6 +69,19 @@ foxReachable hs =
     transitiveClosure unhounded . singleton
   where
     unhounded = filter (flip Set.notMember hs) . foxAdjacent
+
+coordParity :: Coord -> Bool
+coordParity (Coord _ y) = y `mod` 2 == 1
+
+coordToIdx :: Coord -> Idx
+coordToIdx (Coord x y) = (numSquares - 1) - (packSize * y + x `div` 2)
+
+idxToCoord :: Idx -> Coord
+idxToCoord i = Coord x y
+  where
+    j = (numSquares - 1) - i
+    y = j `div` packSize
+    x = 2 * (j `mod` packSize) + (1 - y `mod` 2)
 
 -------------------------------------------------------------------------------
 -- Positions
@@ -105,6 +124,31 @@ foxBox p = Set.isSubsetOf f h
   where
     f = foxReachable (hounds p) (fox p)
     h = houndsReachable (hounds p)
+
+posParity :: Pos -> Bool
+posParity p = parity $ map coordParity (fox p : Set.toList (hounds p))
+
+posToMove :: Pos -> Player
+posToMove =
+    \p -> if posParity p == ip then Player1 else Player2
+  where
+    ip = posParity initial
+
+posToIdx :: Pos -> Idx
+posToIdx p = foldl pack 0 (f : hs)
+  where
+    pack n c = n * numSquares + c
+    f = coordToIdx $ fox p
+    hs = sort $ map coordToIdx $ Set.toList $ hounds p
+
+idxToPos :: Idx -> Pos
+idxToPos i =
+    Pos
+      {fox = idxToCoord i',
+       hounds = Set.fromList (map idxToCoord hs)}
+  where
+    unpack n = (n `mod` numSquares, n `div` numSquares)
+    (hs,i') = unfoldN unpack packSize i
 
 -------------------------------------------------------------------------------
 -- Legal moves
