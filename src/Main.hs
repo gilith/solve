@@ -12,6 +12,7 @@ module Main
 --  ( main )
 where
 
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 --import qualified System.Environment as Environment
 
@@ -31,14 +32,24 @@ fhSolution :: Eval
 fhSolution = Game.evalUnsafe FoxHounds.solution Player1 FoxHounds.initial
 
 fhWinner :: Player
-fhWinner = case fhSolution of
-             Win pl _ -> pl
-             _ -> error "no winner"
+fhWinner =
+    case fhSolution of
+      Win pl _ -> pl
+      _ -> error "no winner"
+
+fhInitialIdx :: FoxHounds.Idx
+fhInitialIdx = FoxHounds.posToIdx FoxHounds.initial
+
+fhMaxReachableIdx :: FoxHounds.Idx
+fhMaxReachableIdx =
+    maximum $ map (FoxHounds.posToIdx . snd . fst) $
+    Map.toList FoxHounds.solution
 
 fhDepth :: Int
-fhDepth = case fhSolution of
-             Win _ n -> n
-             _ -> error "no winner"
+fhDepth =
+    case fhSolution of
+      Win _ n -> n
+      _ -> error "no winner"
 
 fhStopLoss :: Player -> Int -> Strategy FoxHounds.Pos
 fhStopLoss pl n = Game.tryStrategy (FoxHounds.stopLossStrategy pl n)
@@ -106,6 +117,8 @@ main = do
     putStrLn ""
     putStrLn $ "Board size: " ++ show FoxHounds.boardSize
     putStrLn $ "Reachable positions: " ++ show fhReachable
+    putStrLn $ "Initial position index: " ++ show fhInitialIdx
+    putStrLn $ "Maximum reachable position index: " ++ show fhMaxReachableIdx
     putStrLn $ "Solution: " ++ FoxHounds.ppEval fhSolution ++ "\n"
     putStrLn $ "FoxBox strategy failure positions: " ++ fhShowStrategyFail fhFoxBoxStrategyFail
     putStrLn $ "Win probabilities against stop-loss strategies of different depths:"
