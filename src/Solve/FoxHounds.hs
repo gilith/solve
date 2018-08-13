@@ -74,14 +74,13 @@ coordParity :: Coord -> Bool
 coordParity (Coord _ y) = y `mod` 2 == 1
 
 coordToIdx :: Coord -> Idx
-coordToIdx (Coord x y) = (numSquares - 1) - (packSize * y + x `div` 2)
+coordToIdx (Coord x y) = packSize * (boardSize - (y + 1)) + x `div` 2
 
 idxToCoord :: Idx -> Coord
 idxToCoord i = Coord x y
   where
-    j = (numSquares - 1) - i
-    y = j `div` packSize
-    x = 2 * (j `mod` packSize) + (1 - y `mod` 2)
+    y = (boardSize - 1) - (i `div` packSize)
+    x = 2 * (i `mod` packSize) + (1 - y `mod` 2)
 
 -------------------------------------------------------------------------------
 -- Positions
