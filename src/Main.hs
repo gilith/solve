@@ -12,65 +12,67 @@ module Main
 --  ( main )
 where
 
+import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 --import qualified System.Environment as Environment
+import System.FilePath ((</>),(<.>))
 
-import qualified Solve.FoxHounds as FoxHounds
-import Solve.Game (Eval(..),Player(..),Strategy,StrategyFail)
+import qualified Solve.FoxHounds as FH
+import Solve.Game (Eval(..),Player(..),Solve,Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
 -------------------------------------------------------------------------------
--- Fox & hounds
+-- Fox & Hounds
 -------------------------------------------------------------------------------
 
-fhReachable :: Int
-fhReachable = Game.reachable FoxHounds.solution
+reachableFH :: Int
+reachableFH = Game.reachable FH.solution
 
-fhSolution :: Eval
-fhSolution = Game.evalUnsafe FoxHounds.solution Player1 FoxHounds.initial
+solutionFH :: Eval
+solutionFH = Game.evalUnsafe FH.solution Player1 FH.initial
 
-fhWinner :: Player
-fhWinner =
-    case fhSolution of
+winnerFH :: Player
+winnerFH =
+    case solutionFH of
       Win pl _ -> pl
       _ -> error "no winner"
 
-fhInitialIdx :: FoxHounds.Idx
-fhInitialIdx = FoxHounds.posToIdx FoxHounds.initial
+initialIdxFH :: FH.Idx
+initialIdxFH = FH.posToIdx FH.initial
 
-fhMaxReachableIdx :: FoxHounds.Idx
-fhMaxReachableIdx =
-    maximum $ map (FoxHounds.posToIdx . snd . fst) $
-    Map.toList FoxHounds.solution
+maxReachableIdxFH :: FH.Idx
+maxReachableIdxFH =
+    maximum $ map (FH.posToIdx . snd . fst) $
+    Map.toList FH.solution
 
-fhDepth :: Int
-fhDepth =
-    case fhSolution of
+depthFH :: Int
+depthFH =
+    case solutionFH of
       Win _ n -> n
       _ -> error "no winner"
 
-fhStopLoss :: Player -> Int -> Strategy FoxHounds.Pos
-fhStopLoss pl n = Game.tryStrategy (FoxHounds.stopLossStrategy pl n)
+stopLossFH :: Player -> Int -> Strategy FH.Pos
+stopLossFH pl n = Game.tryStrategy (FH.stopLossStrategy pl n)
 
-fhStopLossFoxBox :: Int -> Strategy FoxHounds.Pos
-fhStopLossFoxBox n =
+stopLossFoxBoxFH :: Int -> Strategy FH.Pos
+stopLossFoxBoxFH n =
     Game.thenStrategy
-      (fhStopLoss Player2 n)
-      (Game.tryStrategy FoxHounds.foxBoxStrategy)
+      (stopLossFH Player2 n)
+      (Game.tryStrategy FH.foxBoxStrategy)
 
-fhFoxBoxStrategyFail :: StrategyFail FoxHounds.Pos
-fhFoxBoxStrategyFail =
-    FoxHounds.validateStrategy Player2
-      (Game.tryStrategy FoxHounds.foxBoxStrategy)
+foxBoxStrategyFailFH :: StrategyFail FH.Pos
+foxBoxStrategyFailFH =
+    FH.validateStrategy Player2
+      (Game.tryStrategy FH.foxBoxStrategy)
 
-fhShowStrategyFail :: StrategyFail FoxHounds.Pos -> String
-fhShowStrategyFail ps =
+showStrategyFailFH :: StrategyFail FH.Pos -> String
+showStrategyFailFH ps =
     show n ++ (if n == 0 then "" else "\n" ++ tableFails)
   where
     n = Set.size ps
-    showPos (e,p) = tail (show p) ++ FoxHounds.ppEval e
+    showPos (e,p) = tail (show p) ++ FH.ppEval e
     rowsFail (a,b,c) =
         [] : zipWith3 tripleton (linesPos a) (linesPos b) (linesPos c)
       where
@@ -79,19 +81,19 @@ fhShowStrategyFail ps =
     tableFails =
         showTable ([] : header : concat (map rowsFail (Set.toList ps)) ++ [[]])
 
-fhProbWin :: Int -> (Prob,Prob,Prob)
-fhProbWin n =
-    (FoxHounds.probWin Player1 (fhStopLoss Player2 n),
-     FoxHounds.probWin Player1 (fhStopLossFoxBox n),
-     FoxHounds.probWin Player2 (fhStopLoss Player1 n))
+probWinFH :: Int -> (Prob,Prob,Prob)
+probWinFH n =
+    (FH.probWin Player1 (stopLossFH Player2 n),
+     FH.probWin Player1 (stopLossFoxBoxFH n),
+     FH.probWin Player2 (stopLossFH Player1 n))
 
-fhProbDepth :: [(Int,Prob,Prob,Prob)]
-fhProbDepth = map f [0..fhDepth]
+probDepthFH :: [(Int,Prob,Prob,Prob)]
+probDepthFH = map f [0..depthFH]
   where
-    f n = let (p1,p2,q) = fhProbWin n in (n,p1,p2,q)
+    f n = let (p1,p2,q) = probWinFH n in (n,p1,p2,q)
 
-fhShowProbDepth :: [(Int,Prob,Prob,Prob)] -> String
-fhShowProbDepth ps =
+showProbDepthFH :: [(Int,Prob,Prob,Prob)] -> String
+showProbDepthFH ps =
     showTable
       ([] :
        ["Stop-loss", "Fox wins", "Fox wins", "  Hounds"] :
@@ -101,6 +103,38 @@ fhShowProbDepth ps =
        [[]])
   where
     row (n,f1,f2,h) = [show n, showProb f1, showProb f2, showProb h]
+
+posEntryFH :: Solve FH.Pos -> Player -> FH.Pos -> (FH.Idx,Bool,[FH.Idx])
+posEntryFH sol pl p = (FH.posToIdx p, fw, mvs)
+  where
+    fw = Game.winning Player1 (Game.evalUnsafe sol pl p)
+    mvs = List.sort $ map FH.posToIdx $ Game.move FH.game pl p
+
+posTableFH :: Solve FH.Pos -> [(FH.Idx,Bool,[FH.Idx])]
+posTableFH sol = map (uncurry (posEntryFH sol)) (Map.keys sol)
+
+showPosEntryFH :: (FH.Idx,Bool,[FH.Idx]) -> String
+showPosEntryFH (pos,fw,mvs) =
+    "(" ++ List.intercalate "," values ++ ")"
+  where
+    values =
+      show pos :
+      showBool fw :
+      show mvn :
+      concat (map showMove mvs) ++
+      replicate (3 * (FH.boardSize - mvn)) "NULL"
+
+    mvn = length mvs
+
+    showMove pos' = [show pos', "0", "NULL"]
+
+    showBool True = "'T'"
+    showBool False = "'F'"
+
+showPosTableFH :: [(FH.Idx,Bool,[FH.Idx])] -> String
+showPosTableFH entries =
+    "INSERT INTO `foxhounds` VALUES " ++
+    List.intercalate "," (map showPosEntryFH entries) ++ ";"
 
 -------------------------------------------------------------------------------
 -- Top-level
@@ -115,15 +149,19 @@ main = do
     ___
     putStrLn "FOX & HOUNDS"
     putStrLn ""
-    putStrLn $ "Board size: " ++ show FoxHounds.boardSize
-    putStrLn $ "Reachable positions: " ++ show fhReachable
-    putStrLn $ "Initial position index: " ++ show fhInitialIdx
-    putStrLn $ "Maximum reachable position index: " ++ show fhMaxReachableIdx
-    putStrLn $ "Solution: " ++ FoxHounds.ppEval fhSolution ++ "\n"
-    putStrLn $ "FoxBox strategy failure positions: " ++ fhShowStrategyFail fhFoxBoxStrategyFail
+    putStrLn $ "Board size: " ++ dim
+    putStrLn $ "Reachable positions: " ++ show reachableFH
+    putStrLn $ "Initial position index: " ++ show initialIdxFH
+    putStrLn $ "Maximum reachable position index: " ++ show maxReachableIdxFH
+    putStrLn $ "Solution: " ++ FH.ppEval solutionFH ++ "\n"
+    putStrLn $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
     putStrLn $ "Win probabilities against stop-loss strategies of different depths:"
-    putStrLn $ fhShowProbDepth fhProbDepth
+    putStrLn $ showProbDepthFH probDepthFH
+    putStrLn $ "Creating game database in " ++ db
+    writeFile db (showPosTableFH (posTableFH FH.solution))
     ___
     return ()
   where
+    dim = let n = show FH.boardSize in n ++ "x" ++ n
+    db = "doc" </> ("fox-hounds-" ++ dim) <.> "db"
     ___ = putStrLn $ replicate lineLength '_'

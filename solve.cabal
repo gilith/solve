@@ -16,7 +16,8 @@ description:
 Library
   build-depends:
     base >= 4.0 && < 5.0,
-    containers >= 0.5.7.1
+    containers >= 0.5.7.1,
+    filepath >= 1.4.1.0
   hs-source-dirs: src
   ghc-options: -Wall
   exposed-modules:
@@ -28,7 +29,8 @@ Library
 executable solve
   build-depends:
     base >= 4.0 && < 5.0,
-    containers >= 0.5.7.1
+    containers >= 0.5.7.1,
+    filepath >= 1.4.1.0
   hs-source-dirs: src
   ghc-options: -Wall
   main-is: Main.hs
