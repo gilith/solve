@@ -104,6 +104,9 @@ showProbDepthFH ps =
   where
     row (n,f1,f2,h) = [show n, showProb f1, showProb f2, showProb h]
 
+maxIntCdfFH :: Int
+maxIntCdfFH = 100000
+
 posEntryFH :: Solve FH.Pos -> Player -> FH.Pos -> (FH.Idx,Bool,[FH.Idx])
 posEntryFH sol pl p = (FH.posToIdx p, fw, mvs)
   where
@@ -115,7 +118,8 @@ posTableFH sol = map (uncurry (posEntryFH sol)) (Map.keys sol)
 
 showPosEntryFH :: (FH.Idx,Bool,[FH.Idx]) -> String
 showPosEntryFH (pos,fw,mvs) =
-    "(" ++ List.intercalate "," values ++ ")"
+    "INSERT INTO `foxhounds` VALUES " ++
+    "(" ++ List.intercalate "," values ++ ");\n"
   where
     values =
       show pos :
@@ -126,15 +130,13 @@ showPosEntryFH (pos,fw,mvs) =
 
     mvn = length mvs
 
-    showMove pos' = [show pos', "0", "NULL"]
+    showMove pos' = [show pos', "0", show maxIntCdfFH]
 
     showBool True = "'T'"
     showBool False = "'F'"
 
 showPosTableFH :: [(FH.Idx,Bool,[FH.Idx])] -> String
-showPosTableFH entries =
-    "INSERT INTO `foxhounds` VALUES " ++
-    List.intercalate "," (map showPosEntryFH entries) ++ ";"
+showPosTableFH = concat . map showPosEntryFH;
 
 -------------------------------------------------------------------------------
 -- Top-level
@@ -156,7 +158,7 @@ main = do
     putStrLn $ "Solution: " ++ FH.ppEval solutionFH ++ "\n"
     putStrLn $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
     putStrLn $ "Win probabilities against stop-loss strategies of different depths:"
-    putStrLn $ showProbDepthFH probDepthFH
+    --putStrLn $ showProbDepthFH probDepthFH
     putStrLn $ "Creating game database in " ++ db
     writeFile db (showPosTableFH (posTableFH FH.solution))
     ___
