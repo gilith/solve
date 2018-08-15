@@ -73,11 +73,11 @@ foxReachable hs =
 coordParity :: Coord -> Bool
 coordParity (Coord _ y) = y `mod` 2 == 1
 
-coordToIdx :: Coord -> Idx
-coordToIdx (Coord x y) = packSize * (boardSize - (y + 1)) + x `div` 2
+coordToSquare :: Coord -> Idx
+coordToSquare (Coord x y) = packSize * (boardSize - (y + 1)) + x `div` 2
 
-idxToCoord :: Idx -> Coord
-idxToCoord i = Coord x y
+squareToCoord :: Idx -> Coord
+squareToCoord i = Coord x y
   where
     y = (boardSize - 1) - (i `div` packSize)
     x = 2 * (i `mod` packSize) + (1 - y `mod` 2)
@@ -137,14 +137,14 @@ posToIdx :: Pos -> Idx
 posToIdx p = foldl pack 0 (f : hs)
   where
     pack n c = n * numSquares + c
-    f = coordToIdx $ fox p
-    hs = sort $ map coordToIdx $ Set.toList $ hounds p
+    f = coordToSquare $ fox p
+    hs = sort $ map coordToSquare $ Set.toList $ hounds p
 
 idxToPos :: Idx -> Pos
 idxToPos i =
     Pos
-      {fox = idxToCoord i',
-       hounds = Set.fromList (map idxToCoord hs)}
+      {fox = squareToCoord i',
+       hounds = Set.fromList (map squareToCoord hs)}
   where
     unpack n = (n `mod` numSquares, n `div` numSquares)
     (hs,i') = unfoldN unpack packSize i

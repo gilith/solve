@@ -111,7 +111,11 @@ posEntryFH :: Solve FH.Pos -> Player -> FH.Pos -> (FH.Idx,Bool,[FH.Idx])
 posEntryFH sol pl p = (FH.posToIdx p, fw, mvs)
   where
     fw = Game.winning Player1 (Game.evalUnsafe sol pl p)
-    mvs = List.sort $ map FH.posToIdx $ Game.move FH.game pl p
+    mvs = sortMoves $ Game.move FH.game pl p
+    sortMoves = map snd . List.sort . map posIdx
+    posIdx q = (FH.coordToSquare (moved q), FH.posToIdx q)
+    moved = Set.findMin . Set.difference (pieces p) . pieces
+    pieces q = Set.insert (FH.fox q) (FH.hounds q)
 
 posTableFH :: Solve FH.Pos -> [(FH.Idx,Bool,[FH.Idx])]
 posTableFH sol = map (uncurry (posEntryFH sol)) (Map.keys sol)
