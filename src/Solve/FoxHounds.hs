@@ -16,7 +16,7 @@ import Data.List (sort)
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Eval(..),Game,Player(..),Solve,Strategy,StrategyFail)
+import Solve.Game (Eval(..),Game,Player(..),ProbWin,Solve,Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -193,12 +193,15 @@ game pl p =
   where
     ps = move pl p
 
+evalInitial :: Game.DfsResult Pos v -> v
+evalInitial db = Game.evalUnsafe db Player1 initial
+
 -------------------------------------------------------------------------------
 -- Solution
 -------------------------------------------------------------------------------
 
 solution :: Solve Pos
-solution = snd (Game.solve game Player1 initial)
+solution = Game.solve game Player1 initial
 
 -------------------------------------------------------------------------------
 -- Strategies
@@ -222,7 +225,7 @@ validateStrategy pl str =
 -- Win probability
 -------------------------------------------------------------------------------
 
-probWin :: Player -> Strategy Pos -> Prob
+probWin :: Player -> Strategy Pos -> ProbWin Pos
 probWin pl adv = Game.probWin game pl adv Player1 initial
 
 -------------------------------------------------------------------------------

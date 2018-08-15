@@ -27,8 +27,9 @@ type DfsPost n a v = n -> [((a,n), Maybe v)] -> v
 
 type DfsResult n v = Map n v
 
-dfs :: Ord n => DfsPre n a v -> DfsPost n a v -> n -> (v, DfsResult n v)
-dfs pre post = go Set.empty Map.empty
+dfsWith :: Ord n => DfsPre n a v -> DfsPost n a v ->
+           DfsResult n v -> n -> (v, DfsResult n v)
+dfsWith pre post = go Set.empty
   where
     go br db n =
         case Map.lookup n db of
@@ -46,3 +47,15 @@ dfs pre post = go Set.empty Map.empty
     evalChild br db (a,n) | otherwise = (((a,n), Just v), db')
       where
         (v,db') = go br db n
+
+dfs :: Ord n => DfsPre n a v -> DfsPost n a v -> n -> (v, DfsResult n v)
+dfs pre post = dfsWith pre post Map.empty
+
+eval :: Ord n => DfsResult n v -> n -> Maybe v
+eval db n = Map.lookup n db
+
+evalUnsafe :: Ord n => DfsResult n v -> n -> v
+evalUnsafe db n =
+    case eval db n of
+      Just v -> v
+      Nothing -> error "node not in database"

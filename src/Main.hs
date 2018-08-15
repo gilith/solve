@@ -31,7 +31,7 @@ reachableFH :: Int
 reachableFH = Game.reachable FH.solution
 
 solutionFH :: Eval
-solutionFH = Game.evalUnsafe FH.solution Player1 FH.initial
+solutionFH = FH.evalInitial FH.solution
 
 winnerFH :: Player
 winnerFH =
@@ -83,9 +83,9 @@ showStrategyFailFH ps =
 
 probWinFH :: Int -> (Prob,Prob,Prob)
 probWinFH n =
-    (FH.probWin Player1 (stopLossFH Player2 n),
-     FH.probWin Player1 (stopLossFoxBoxFH n),
-     FH.probWin Player2 (stopLossFH Player1 n))
+    (FH.evalInitial $ FH.probWin Player1 (stopLossFH Player2 n),
+     FH.evalInitial $ FH.probWin Player1 (stopLossFoxBoxFH n),
+     FH.evalInitial $ FH.probWin Player2 (stopLossFH Player1 n))
 
 probDepthFH :: [(Int,Prob,Prob,Prob)]
 probDepthFH = map f [0..depthFH]
@@ -162,7 +162,7 @@ main = do
     putStrLn $ "Solution: " ++ FH.ppEval solutionFH ++ "\n"
     putStrLn $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
     putStrLn $ "Win probabilities against stop-loss strategies of different depths:"
-    --putStrLn $ showProbDepthFH probDepthFH
+    putStrLn $ showProbDepthFH probDepthFH
     putStrLn $ "Creating game database in " ++ db
     writeFile db (showPosTableFH (posTableFH FH.solution))
     ___

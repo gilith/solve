@@ -105,9 +105,9 @@ type DfsPost p a v = Player -> Graph.DfsPost p a v
 
 type DfsResult p v = Graph.DfsResult (Player,p) v
 
-dfs :: Ord p => DfsPre p a v -> DfsPost p a v ->
-       Player -> p -> (v, DfsResult p v)
-dfs pre post = curry (Graph.dfs pre' post')
+dfsWith :: Ord p => DfsPre p a v -> DfsPost p a v ->
+           DfsResult p v -> Player -> p -> (v, DfsResult p v)
+dfsWith pre post = curry . Graph.dfsWith pre' post'
   where
     pre' (pl,p) =
         case pre pl p of
@@ -120,14 +120,20 @@ dfs pre post = curry (Graph.dfs pre' post')
 
     delPl ((a,(_,p)),v) = ((a,p),v)
 
+eval :: Ord p => DfsResult p v -> Player -> p -> Maybe v
+eval = curry . Graph.eval
+
+evalUnsafe :: Ord p => DfsResult p v -> Player -> p -> v
+evalUnsafe = curry . Graph.evalUnsafe
+
 -------------------------------------------------------------------------------
 -- Game solution
 -------------------------------------------------------------------------------
 
 type Solve p = DfsResult p Eval
 
-solve :: Ord p => Game p -> Player -> p -> (Eval, Solve p)
-solve game = dfs pre post
+solveWith :: Ord p => Game p -> Solve p -> Player -> p -> (Eval, Solve p)
+solveWith game = dfsWith pre post
   where
     pre pl p =
         case game pl p of
@@ -136,17 +142,11 @@ solve game = dfs pre post
 
     post pl _ = delay . best pl . map (fromMaybe Draw . snd)
 
+solve :: Ord p => Game p -> Player -> p -> Solve p
+solve game pl p = snd $ solveWith game Map.empty pl p
+
 reachable :: Solve p -> Int
 reachable = Map.size
-
-eval :: Ord p => Solve p -> Player -> p -> Maybe Eval
-eval sol pl p = Map.lookup (pl,p) sol
-
-evalUnsafe :: Ord p => Solve p -> Player -> p -> Eval
-evalUnsafe sol pl p =
-    case eval sol pl p of
-      Just e -> e
-      Nothing -> error "position is unreachable"
 
 -------------------------------------------------------------------------------
 -- Strategies
@@ -202,7 +202,7 @@ stopLossStrategy sol pl n = filterStrategy f
 type StrategyFail p = Set ((Eval,p),(Eval,p),(Eval,p))
 
 validateStrategy :: Ord p => Game p -> Solve p -> Player -> Strategy p -> Player -> p -> StrategyFail p
-validateStrategy game sol spl str = \ipl -> fst . dfs pre post ipl
+validateStrategy game sol spl str = \ipl -> fst . dfsWith pre post Map.empty ipl
   where
     pre pl p =
         case game pl p of
@@ -229,8 +229,11 @@ validateStrategy game sol spl str = \ipl -> fst . dfs pre post ipl
 -- Compute probability of win
 -------------------------------------------------------------------------------
 
-probWin :: Ord p => Game p -> Player -> Strategy p -> Player -> p -> Prob
-probWin game wpl adv = \ipl -> fst . dfs pre post ipl
+type ProbWin p = DfsResult p Prob
+
+probWinWith :: Ord p => Game p -> Player -> Strategy p ->
+               ProbWin p -> Player -> p -> (Prob, ProbWin p)
+probWinWith game wpl adv = dfsWith pre post
   where
     pre pl p =
         case game pl p of
@@ -247,3 +250,6 @@ probWin game wpl adv = \ipl -> fst . dfs pre post ipl
         ps = map (fromMaybe 0.0) mps
 
     strategize pl = if pl == wpl then weightlessStrategy else applyStrategy adv
+
+probWin :: Ord p => Game p -> Player -> Strategy p -> Player -> p -> ProbWin p
+probWin game wpl adv pl p = snd $ probWinWith game wpl adv Map.empty pl p
