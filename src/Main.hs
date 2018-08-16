@@ -17,6 +17,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 --import qualified System.Environment as Environment
 import System.FilePath ((</>),(<.>))
+import System.IO (IOMode(..),hPutStrLn,withFile)
 
 import qualified Solve.FoxHounds as FH
 import Solve.Game (Adversaries,Eval(..),Player(..),PlayerState(..),Strategy,StrategyFail)
@@ -130,11 +131,10 @@ posTableFH = fst $ mapLR posEntryFH adv $ Map.keys FH.solution
     fox = stopLossFH Player1
     hound = stopLossFoxBoxFH
 
-
 showPosEntryFH :: (FH.Idx,Bool,[(FH.Idx,Integer)]) -> String
 showPosEntryFH (pos,fw,mvs) =
     "INSERT INTO `foxhounds` VALUES " ++
-    "(" ++ List.intercalate "," values ++ ");\n"
+    "(" ++ List.intercalate "," values ++ ");"
   where
     values =
       show pos :
@@ -150,8 +150,9 @@ showPosEntryFH (pos,fw,mvs) =
     showBool True = "'T'"
     showBool False = "'F'"
 
-showPosTableFH :: [(FH.Idx,Bool,[(FH.Idx,Integer)])] -> String
-showPosTableFH = concat . map showPosEntryFH;
+writePosTableFH :: FilePath -> [(FH.Idx,Bool,[(FH.Idx,Integer)])] -> IO ()
+writePosTableFH file entries = withFile file WriteMode $ \h ->
+    mapM_ (hPutStrLn h . showPosEntryFH) entries
 
 -------------------------------------------------------------------------------
 -- Top-level
@@ -174,8 +175,9 @@ main = do
     putStrLn $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
     putStrLn $ "Win probabilities against stop-loss strategies of different depths:"
     putStrLn $ showProbDepthFH probDepthFH
-    putStrLn $ "Creating game database in " ++ db
-    writeFile db (showPosTableFH posTableFH)
+    putStr $ "Creating game database in " ++ db ++ ":"
+    writePosTableFH db posTableFH
+    putStrLn $ " " ++ show (length posTableFH) ++ " rows"
     ___
     return ()
   where
