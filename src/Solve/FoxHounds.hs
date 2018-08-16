@@ -13,10 +13,11 @@ where
 
 import qualified Data.Char as Char
 import Data.List (sort)
+import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Eval(..),Game,Player(..),ProbWin,Solve,Strategy,StrategyFail)
+import Solve.Game (Adversaries,Eval(..),Game,Player(..),PlayerState(..),ProbWin,Solve,Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -213,6 +214,17 @@ stopLossStrategy = Game.stopLossStrategy solution
 foxBoxStrategy :: Strategy Pos
 foxBoxStrategy = Game.filterStrategy foxBox
 
+-- Best known strategies
+
+foxStrategy :: Int -> Strategy Pos
+foxStrategy n = Game.tryStrategy (stopLossStrategy Player1 n)
+
+houndsStrategy :: Int -> Strategy Pos
+houndsStrategy n =
+    Game.thenStrategy
+      (Game.tryStrategy (stopLossStrategy Player2 n))
+      (Game.tryStrategy foxBoxStrategy)
+
 -------------------------------------------------------------------------------
 -- Validating strategies
 -------------------------------------------------------------------------------
@@ -225,8 +237,15 @@ validateStrategy pl str =
 -- Win probability
 -------------------------------------------------------------------------------
 
+adversaries :: Adversaries Pos
+adversaries = PlayerState (mk houndsStrategy, mk foxStrategy)
+  where mk sf = map (flip (,) Map.empty . sf . (* 2)) [0..]
+
 probWin :: Player -> Strategy Pos -> ProbWin Pos
 probWin pl adv = Game.probWin game pl adv Player1 initial
+
+moveDist :: Adversaries Pos -> Player -> Pos -> ([(Prob,Pos)], Adversaries Pos)
+moveDist = Game.moveDist game solution
 
 -------------------------------------------------------------------------------
 -- Pretty printing

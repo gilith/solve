@@ -20,7 +20,7 @@ import System.FilePath ((</>),(<.>))
 import System.IO (IOMode(..),hPutStrLn,withFile)
 
 import qualified Solve.FoxHounds as FH
-import Solve.Game (Adversaries,Eval(..),Player(..),PlayerState(..),Strategy,StrategyFail)
+import Solve.Game (Adversaries,Eval(..),Player(..),Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -57,12 +57,6 @@ depthFH =
 stopLossFH :: Player -> Int -> Strategy FH.Pos
 stopLossFH pl n = Game.tryStrategy (FH.stopLossStrategy pl n)
 
-stopLossFoxBoxFH :: Int -> Strategy FH.Pos
-stopLossFoxBoxFH n =
-    Game.thenStrategy
-      (stopLossFH Player2 n)
-      (Game.tryStrategy FH.foxBoxStrategy)
-
 foxBoxStrategyFailFH :: StrategyFail FH.Pos
 foxBoxStrategyFailFH =
     FH.validateStrategy Player2
@@ -85,8 +79,8 @@ showStrategyFailFH ps =
 probWinFH :: Int -> (Prob,Prob,Prob)
 probWinFH n =
     (FH.evalInitial $ FH.probWin Player1 (stopLossFH Player2 n),
-     FH.evalInitial $ FH.probWin Player1 (stopLossFoxBoxFH n),
-     FH.evalInitial $ FH.probWin Player2 (stopLossFH Player1 n))
+     FH.evalInitial $ FH.probWin Player1 (FH.houndsStrategy n),
+     FH.evalInitial $ FH.probWin Player2 (FH.foxStrategy n))
 
 probDepthFH :: [(Int,Prob,Prob,Prob)]
 probDepthFH = map f [0..depthFH]
@@ -113,7 +107,7 @@ posEntryFH :: Adversaries FH.Pos -> (Player,FH.Pos) ->
 posEntryFH adv (pl,p) = ((FH.posToIdx p, fw, moves mvs), adv')
   where
     fw = Game.winning Player1 (Game.evalUnsafe FH.solution pl p)
-    (mvs,adv') = Game.moveDist FH.game FH.solution adv pl p
+    (mvs,adv') = FH.moveDist adv pl p
 
     moves = fst . mapLR cdf 0.0 . map snd . List.sort . map posIdx
       where
@@ -124,12 +118,7 @@ posEntryFH adv (pl,p) = ((FH.posToIdx p, fw, moves mvs), adv')
         m = fromInteger maxIntCdfFH
 
 posTableFH :: [(FH.Idx,Bool,[(FH.Idx,Integer)])]
-posTableFH = fst $ mapLR posEntryFH adv $ Map.keys FH.solution
-  where
-    adv = PlayerState (pstr hound, pstr fox)
-    pstr s = map (flip (,) Map.empty . s) [0..depthFH]
-    fox = stopLossFH Player1
-    hound = stopLossFoxBoxFH
+posTableFH = fst $ mapLR posEntryFH FH.adversaries $ Map.keys FH.solution
 
 showPosEntryFH :: (FH.Idx,Bool,[(FH.Idx,Integer)]) -> String
 showPosEntryFH (pos,fw,mvs) =
