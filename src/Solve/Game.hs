@@ -12,7 +12,7 @@ module Solve.Game
 where
 
 import qualified Data.Map as Map
-import Data.Maybe (fromMaybe,mapMaybe)
+import Data.Maybe (fromMaybe,isJust,mapMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
 
@@ -31,9 +31,21 @@ data Player =
   | Player2
   deriving (Eq,Ord,Show)
 
+newtype PlayerState s = PlayerState (s,s)
+
 turn :: Player -> Player
 turn Player1 = Player2
 turn Player2 = Player1
+
+getPlayerState :: PlayerState s -> Player -> s
+getPlayerState (PlayerState (s1,_)) Player1 = s1
+getPlayerState (PlayerState (_,s2)) Player2 = s2
+
+updatePlayerState :: (s -> (a,s)) -> PlayerState s -> Player -> (a, PlayerState s)
+updatePlayerState f (PlayerState (s1,s2)) Player1 = (x, PlayerState (s1',s2))
+  where (x,s1') = f s1
+updatePlayerState f (PlayerState (s1,s2)) Player2 = (x, PlayerState (s1,s2'))
+  where (x,s2') = f s2
 
 -------------------------------------------------------------------------------
 -- Position evaluations
@@ -231,6 +243,8 @@ validateStrategy game sol spl str = \ipl -> fst . dfsWith pre post Map.empty ipl
 
 type ProbWin p = DfsResult p Prob
 
+type Adversaries p = PlayerState [(Strategy p, ProbWin p)]
+
 probWinWith :: Ord p => Game p -> Player -> Strategy p ->
                ProbWin p -> Player -> p -> (Prob, ProbWin p)
 probWinWith game wpl adv = dfsWith pre post
@@ -253,3 +267,55 @@ probWinWith game wpl adv = dfsWith pre post
 
 probWin :: Ord p => Game p -> Player -> Strategy p -> Player -> p -> ProbWin p
 probWin game wpl adv pl p = snd $ probWinWith game wpl adv Map.empty pl p
+
+moveDist :: Ord p => Game p -> Solve p ->
+            Adversaries p -> Player -> p -> ([(Prob,p)], Adversaries p)
+moveDist game sol advs pl p =
+    case game pl p of
+      Left _ -> ([],advs)
+      Right ps -> updatePlayerState (dist ps) advs wpl
+  where
+    dist ps adv = (zip (normalize ws) ps, adv')
+      where
+        (ws,adv') = weight (mfilter notBad ps) adv
+
+    weight ps [] = (uniform ps, [])
+    weight ps (ah : at) = (ws, reverse ral ++ adv' : al)
+      where
+        (ral,adv,al) = foldr strengthen ([],ah,at) ps
+        (prs,adv') = mapLR mprob adv ps
+        ws = if any likely prs then map square prs else uniform ps
+
+    strengthen Nothing = id
+    strengthen (Just q) = go
+      where
+        go (ral, ah, []) = (ral,ah,[])
+        go (ral, ah, adv : at) =
+            if likely pr then go (ah : ral, adv', at)
+            else (ral, ah, adv' : at)
+          where
+            (pr,adv') = prob adv q
+
+    mprob adv Nothing = (0.0,adv)
+    mprob adv (Just q) = prob adv q
+
+    prob (adv,pw) q = (pr,(adv,pw'))
+      where (pr,pw') = probWinWith game wpl adv pw pl' q
+
+    notBad = not . betterEval pl ev . evalUnsafe sol pl'
+
+    ev = evalUnsafe sol pl p
+
+    wpl = if winning pl ev then pl' else pl
+
+    pl' = turn pl
+
+    mfilter = map . mpred
+
+    mpred f x = if f x then Just x else Nothing
+
+    uniform = map (boolProb . isJust)
+
+    likely pr = 0.5 <= pr
+
+    square x = x * x

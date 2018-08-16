@@ -19,7 +19,7 @@ import qualified Data.Set as Set
 import System.FilePath ((</>),(<.>))
 
 import qualified Solve.FoxHounds as FH
-import Solve.Game (Eval(..),Player(..),Solve,Strategy,StrategyFail)
+import Solve.Game (Adversaries,Eval(..),Player(..),PlayerState(..),Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -104,23 +104,34 @@ showProbDepthFH ps =
   where
     row (n,f1,f2,h) = [show n, showProb f1, showProb f2, showProb h]
 
-maxIntCdfFH :: Int
+maxIntCdfFH :: Integer
 maxIntCdfFH = 100000
 
-posEntryFH :: Solve FH.Pos -> Player -> FH.Pos -> (FH.Idx,Bool,[FH.Idx])
-posEntryFH sol pl p = (FH.posToIdx p, fw, mvs)
+posEntryFH :: Adversaries FH.Pos -> (Player,FH.Pos) ->
+              ((FH.Idx,Bool,[(FH.Idx,Integer)]), Adversaries FH.Pos)
+posEntryFH adv (pl,p) = ((FH.posToIdx p, fw, moves mvs), adv')
   where
-    fw = Game.winning Player1 (Game.evalUnsafe sol pl p)
-    mvs = sortMoves $ Game.move FH.game pl p
-    sortMoves = map snd . List.sort . map posIdx
-    posIdx q = (FH.coordToSquare (moved q), FH.posToIdx q)
-    moved = Set.findMin . Set.difference (pieces p) . pieces
-    pieces q = Set.insert (FH.fox q) (FH.hounds q)
+    fw = Game.winning Player1 (Game.evalUnsafe FH.solution pl p)
+    (mvs,adv') = Game.moveDist FH.game FH.solution adv pl p
 
-posTableFH :: Solve FH.Pos -> [(FH.Idx,Bool,[FH.Idx])]
-posTableFH sol = map (uncurry (posEntryFH sol)) (Map.keys sol)
+    moves = fst . mapLR cdf 0.0 . map snd . List.sort . map posIdx
+      where
+        cdf s (q,pr) = let s' = s + pr in ((q, round (s' * m)), s')
+        posIdx (pr,q) = (FH.coordToSquare (moved q), (FH.posToIdx q, pr))
+        moved = Set.findMin . Set.difference (pieces p) . pieces
+        pieces q = Set.insert (FH.fox q) (FH.hounds q)
+        m = fromInteger maxIntCdfFH
 
-showPosEntryFH :: (FH.Idx,Bool,[FH.Idx]) -> String
+posTableFH :: [(FH.Idx,Bool,[(FH.Idx,Integer)])]
+posTableFH = fst $ mapLR posEntryFH adv $ Map.keys FH.solution
+  where
+    adv = PlayerState (pstr hound, pstr fox)
+    pstr s = map (flip (,) Map.empty . s) [0..depthFH]
+    fox = stopLossFH Player1
+    hound = stopLossFoxBoxFH
+
+
+showPosEntryFH :: (FH.Idx,Bool,[(FH.Idx,Integer)]) -> String
 showPosEntryFH (pos,fw,mvs) =
     "INSERT INTO `foxhounds` VALUES " ++
     "(" ++ List.intercalate "," values ++ ");\n"
@@ -134,12 +145,12 @@ showPosEntryFH (pos,fw,mvs) =
 
     mvn = length mvs
 
-    showMove pos' = [show pos', "0", show maxIntCdfFH]
+    showMove (pos',cdf) = [show pos', "0", show cdf]
 
     showBool True = "'T'"
     showBool False = "'F'"
 
-showPosTableFH :: [(FH.Idx,Bool,[FH.Idx])] -> String
+showPosTableFH :: [(FH.Idx,Bool,[(FH.Idx,Integer)])] -> String
 showPosTableFH = concat . map showPosEntryFH;
 
 -------------------------------------------------------------------------------
@@ -164,7 +175,7 @@ main = do
     putStrLn $ "Win probabilities against stop-loss strategies of different depths:"
     putStrLn $ showProbDepthFH probDepthFH
     putStrLn $ "Creating game database in " ++ db
-    writeFile db (showPosTableFH (posTableFH FH.solution))
+    writeFile db (showPosTableFH posTableFH)
     ___
     return ()
   where
