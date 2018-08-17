@@ -161,6 +161,41 @@ reachable :: Solve p -> Int
 reachable = Map.size
 
 -------------------------------------------------------------------------------
+-- Forcing states that satisfy a predicate
+-------------------------------------------------------------------------------
+
+data Force =
+    ForceIn Int
+  | ForceNever
+  deriving (Eq,Ord,Show)
+
+type Forced p = DfsResult p Force
+
+bestForce :: Ord a => Player -> Player -> [a] -> a
+bestForce fpl pl = if fpl == pl then minimum else maximum
+
+delayForce :: Force -> Force
+delayForce (ForceIn n) = ForceIn (n + 1)
+delayForce ForceNever = ForceNever
+
+forcedWith :: Ord p => Game p -> Player -> (Player -> p -> Bool) ->
+              Forced p -> Player -> p -> (Force, Forced p)
+forcedWith game fpl isp = dfsWith pre post
+  where
+    pre pl p =
+        case game pl p of
+          Left _ -> Left (if isp pl p then ForceIn 0 else ForceNever)
+          Right ps -> Right (map ((,) ()) ps)
+
+    post pl p =
+        if isp pl p then const (ForceIn 0)
+        else delayForce . bestForce fpl pl . map (fromMaybe ForceNever . snd)
+
+forced :: Ord p => Game p -> Player -> (Player -> p -> Bool) ->
+          Player -> p -> Forced p
+forced game fpl isp pl p = snd $ forcedWith game fpl isp Map.empty pl p
+
+-------------------------------------------------------------------------------
 -- Strategies
 -------------------------------------------------------------------------------
 
@@ -206,6 +241,11 @@ stopLossStrategy sol pl n = filterStrategy f
     f p = let e = evalUnsafe sol pl' p in not (better pl' e ok)
     ok = Win pl' n
     pl' = turn pl
+
+forcedStrategy :: Ord p => Forced p -> Player -> Int -> Strategy p
+forcedStrategy frc pl n = filterStrategy f
+  where
+    f = (>) (ForceIn n) . evalUnsafe frc (turn pl)
 
 -------------------------------------------------------------------------------
 -- Validating strategies

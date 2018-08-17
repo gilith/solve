@@ -60,7 +60,7 @@ stopLossFH pl n = Game.tryStrategy (FH.stopLossStrategy pl n)
 foxBoxStrategyFailFH :: StrategyFail FH.Pos
 foxBoxStrategyFailFH =
     FH.validateStrategy Player2
-      (Game.tryStrategy FH.foxBoxStrategy)
+      (Game.tryStrategy (FH.foxBoxStrategy 1))
 
 showStrategyFailFH :: StrategyFail FH.Pos -> String
 showStrategyFailFH ps =

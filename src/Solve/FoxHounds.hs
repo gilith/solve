@@ -17,7 +17,7 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Adversaries,Eval(..),Game,Player(..),PlayerState(..),ProbWin,Solve,Strategy,StrategyFail)
+import Solve.Game (Adversaries,Eval(..),Forced,Game,Player(..),PlayerState(..),ProbWin,Solve,Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -208,11 +208,14 @@ solution = Game.solve game Player1 initial
 -- Strategies
 -------------------------------------------------------------------------------
 
+forcedFoxBox :: Forced Pos
+forcedFoxBox = Game.forced game Player2 (const foxBox) Player1 initial
+
 stopLossStrategy :: Player -> Int -> Strategy Pos
 stopLossStrategy = Game.stopLossStrategy solution
 
-foxBoxStrategy :: Strategy Pos
-foxBoxStrategy = Game.filterStrategy foxBox
+foxBoxStrategy :: Int -> Strategy Pos
+foxBoxStrategy = Game.forcedStrategy forcedFoxBox Player2
 
 -- Best known strategies
 
@@ -223,7 +226,11 @@ houndsStrategy :: Int -> Strategy Pos
 houndsStrategy n =
     Game.thenStrategy
       (Game.tryStrategy (stopLossStrategy Player2 n))
-      (Game.tryStrategy foxBoxStrategy)
+      (Game.tryStrategy (foxBoxStrategy n))
+
+adversaries :: Adversaries Pos
+adversaries = PlayerState (mk houndsStrategy, mk foxStrategy)
+  where mk sf = map (flip (,) Map.empty . sf . (* 2)) [0..]
 
 -------------------------------------------------------------------------------
 -- Validating strategies
@@ -236,10 +243,6 @@ validateStrategy pl str =
 -------------------------------------------------------------------------------
 -- Win probability
 -------------------------------------------------------------------------------
-
-adversaries :: Adversaries Pos
-adversaries = PlayerState (mk houndsStrategy, mk foxStrategy)
-  where mk sf = map (flip (,) Map.empty . sf . (* 2)) [0..]
 
 probWin :: Player -> Strategy Pos -> ProbWin Pos
 probWin pl adv = Game.probWin game pl adv Player1 initial
