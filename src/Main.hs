@@ -173,5 +173,5 @@ main = do
     return ()
   where
     dim = let n = show FH.boardSize in n ++ "x" ++ n
-    db = "doc" </> ("fox-hounds-" ++ dim) <.> "db"
+    db = "doc" </> ("fox-hounds-" ++ dim) <.> "sql"
     ___ = putStrLn $ replicate lineLength '_'
