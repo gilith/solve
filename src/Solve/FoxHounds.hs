@@ -230,7 +230,7 @@ houndsStrategy n =
 
 adversaries :: Adversaries Pos
 adversaries = PlayerState (mk houndsStrategy, mk foxStrategy)
-  where mk sf = map (flip (,) Map.empty . sf . (* 2)) [0..]
+  where mk sf = map (flip (,) Map.empty . sf) [0..]
 
 -------------------------------------------------------------------------------
 -- Validating strategies

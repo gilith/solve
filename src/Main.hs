@@ -91,8 +91,10 @@ showProbDepthFH :: [(Int,Prob,Prob,Prob)] -> String
 showProbDepthFH ps =
     showTable
       ([] :
-       ["Stop-loss", "Fox wins", "Fox wins", "  Hounds"] :
-       ["depth", "", "(FoxBox)", "win"] :
+       ["Strategy", "Fox wins", "Fox wins", "Hounds"] :
+       ["depth", "vs", "vs", "win"] :
+       ["", "StopLoss", "StopLoss", "vs"] :
+       ["", "", "+ FoxBox", "StopLoss"] :
        [] :
        map row ps ++
        [[]])
@@ -162,7 +164,7 @@ main = do
     putStrLn $ "Maximum reachable position index: " ++ show maxReachableIdxFH
     putStrLn $ "Solution: " ++ FH.ppEval solutionFH ++ "\n"
     putStrLn $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
-    putStrLn $ "Win probabilities against stop-loss strategies of different depths:"
+    putStrLn $ "Win probabilities against strategies of different depths:"
     putStrLn $ showProbDepthFH probDepthFH
     putStr $ "Creating game database in " ++ db ++ ":"
     writePosTableFH db posTableFH
