@@ -20,7 +20,7 @@ import System.FilePath ((</>),(<.>))
 import System.IO (IOMode(..),hPutStrLn,withFile)
 
 import qualified Solve.FoxHounds as FH
-import Solve.Game (Adversaries,Eval(..),Player(..),Strategy,StrategyFail)
+import Solve.Game (Adversaries,Eval(..),Force(..),Player(..),Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -43,10 +43,12 @@ winnerFH =
 initialIdxFH :: FH.Idx
 initialIdxFH = FH.posToIdx FH.initial
 
-maxReachableIdxFH :: FH.Idx
-maxReachableIdxFH =
-    maximum $ map (FH.posToIdx . snd . fst) $
-    Map.toList FH.solution
+reachableIdxFH :: (FH.Idx,FH.Idx)
+reachableIdxFH = (a,b)
+  where
+    a = minimum l
+    b = maximum l
+    l = map (FH.posToIdx . snd . fst) $ Map.toList FH.solution
 
 depthFH :: Int
 depthFH =
@@ -108,10 +110,12 @@ maxIntCdfFH :: Integer
 maxIntCdfFH = 100000
 
 posEntryFH :: Adversaries FH.Pos -> (Player,FH.Pos) ->
-              ((FH.Idx,Bool,[(FH.Idx,Integer)]), Adversaries FH.Pos)
-posEntryFH adv (pl,p) = ((FH.posToIdx p, fw, moves mvs), adv')
+              ((FH.Idx,Bool,Force,(Force,Int),[(FH.Idx,Integer)]), Adversaries FH.Pos)
+posEntryFH adv (pl,p) = ((FH.posToIdx p, fw, fb, fbm, moves mvs), adv')
   where
     fw = Game.winning Player1 (Game.evalUnsafe FH.solution pl p)
+    fb = Game.evalUnsafe FH.forcedFoxBox pl p
+    fbm = Game.evalUnsafe FH.maxForcedFoxBox pl p
     (mvs,adv') = FH.moveDist adv pl p
 
     moves = fst . mapLR cdf 0.0 . map snd . List.sort . map posIdx
@@ -122,29 +126,35 @@ posEntryFH adv (pl,p) = ((FH.posToIdx p, fw, moves mvs), adv')
         pieces q = Set.insert (FH.fox q) (FH.hounds q)
         m = fromInteger maxIntCdfFH
 
-posTableFH :: [(FH.Idx,Bool,[(FH.Idx,Integer)])]
+posTableFH :: [(FH.Idx,Bool,Force,(Force,Int),[(FH.Idx,Integer)])]
 posTableFH = fst $ mapLR posEntryFH FH.adversaries $ Map.keys FH.solution
 
-showPosEntryFH :: (FH.Idx,Bool,[(FH.Idx,Integer)]) -> String
-showPosEntryFH (pos,fw,mvs) =
+showPosEntryFH :: (FH.Idx,Bool,Force,(Force,Int),[(FH.Idx,Integer)]) -> String
+showPosEntryFH (pos,fw,fb,(fbv,fbk),mvs) =
     "INSERT INTO `foxhounds` VALUES " ++
     "(" ++ List.intercalate "," values ++ ");"
   where
     values =
       show pos :
       showBool fw :
+      showForce fb :
+      showForce fbv :
+      show fbk :
       show mvn :
       concat (map showMove mvs) ++
       replicate (3 * (FH.boardSize - mvn)) "NULL"
 
     mvn = length mvs
 
+    showForce (ForceIn k) = show k
+    showForce ForceNever = "NULL"
+
     showMove (pos',cdf) = [show pos', "0", show cdf]
 
     showBool True = "'T'"
     showBool False = "'F'"
 
-writePosTableFH :: FilePath -> [(FH.Idx,Bool,[(FH.Idx,Integer)])] -> IO ()
+writePosTableFH :: FilePath -> [(FH.Idx,Bool,Force,(Force,Int),[(FH.Idx,Integer)])] -> IO ()
 writePosTableFH file entries = withFile file WriteMode $ \h ->
     mapM_ (hPutStrLn h . showPosEntryFH) entries
 
@@ -164,7 +174,7 @@ main = do
     putStrLn $ "Board size: " ++ dim
     putStrLn $ "Reachable positions: " ++ show reachableFH
     putStrLn $ "Initial position index: " ++ show initialIdxFH
-    putStrLn $ "Maximum reachable position index: " ++ show maxReachableIdxFH
+    putStrLn $ "Reachable position index range: " ++ show reachableIdxFH
     putStrLn $ "Solution: " ++ FH.ppEval solutionFH
     putStrLn $ "Maximum forced FoxBox: " ++ show maxForcedFoxBoxFH
     putStrLn ""

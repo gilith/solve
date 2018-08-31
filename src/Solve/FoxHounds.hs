@@ -138,17 +138,17 @@ posToIdx :: Pos -> Idx
 posToIdx p = foldl pack 0 (f : hs)
   where
     pack n c = n * numSquares + c
-    f = coordToSquare $ fox p
+    f = coordToSquare (fox p) + 1
     hs = sort $ map coordToSquare $ Set.toList $ hounds p
 
 idxToPos :: Idx -> Pos
 idxToPos i =
     Pos
-      {fox = squareToCoord i',
+      {fox = squareToCoord (f - 1),
        hounds = Set.fromList (map squareToCoord hs)}
   where
     unpack n = (n `mod` numSquares, n `div` numSquares)
-    (hs,i') = unfoldN unpack packSize i
+    (hs,f) = unfoldN unpack packSize i
 
 -------------------------------------------------------------------------------
 -- Legal moves
