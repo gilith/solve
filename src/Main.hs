@@ -54,7 +54,7 @@ depthFH =
       Win _ n -> n
       _ -> error "no winner"
 
-maxForcedFoxBoxFH :: Game.Force
+maxForcedFoxBoxFH :: (Game.Force,Int)
 maxForcedFoxBoxFH = FH.evalInitial FH.maxForcedFoxBox
 
 stopLossFH :: Player -> Int -> Strategy FH.Pos

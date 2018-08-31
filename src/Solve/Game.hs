@@ -200,20 +200,25 @@ forced game fpl isp pl p = snd $ forcedWith game fpl isp Map.empty pl p
 -------------------------------------------------------------------------------
 
 gameMaxWith :: (Ord p, Ord v) => Game p -> Player -> DfsResult p v ->
-               DfsResult p v -> Player -> p -> (v, DfsResult p v)
+               DfsResult p (v,Int) -> Player -> p -> ((v,Int), DfsResult p (v,Int))
 gameMaxWith game mpl pv = dfsWith pre post
   where
     pre pl p =
         case game pl p of
-          Left _ -> Left (evalUnsafe pv pl p)
+          Left _ -> Left (valNow pl p)
           Right ps -> Right (map ((,) ()) ps)
 
-    post pl p = f . mapMaybe snd
-      where f = if pl == mpl then maximum . ((:) (evalUnsafe pv pl p))
-                else minimum
+    post pl p = orient . optimize . map (orient . valLater) . mapMaybe snd
+      where
+        optimize vks = if pl == mpl then maximum (vk : vks) else minimum vks
+        orient (v,k) = (v, negate k)
+        vk = valNow pl p
+
+    valNow pl p = (evalUnsafe pv pl p, 0)
+    valLater (v,k) = (v, k + 1)
 
 gameMax :: (Ord p, Ord v) => Game p -> Player -> DfsResult p v ->
-           Player -> p -> DfsResult p v
+           Player -> p -> DfsResult p (v,Int)
 gameMax game mpl pv pl p = snd $ gameMaxWith game mpl pv Map.empty pl p
 
 -------------------------------------------------------------------------------

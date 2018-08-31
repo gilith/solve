@@ -17,7 +17,7 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Adversaries,Eval(..),Forced,Game,Player(..),PlayerState(..),ProbWin,Solve,Strategy,StrategyFail)
+import Solve.Game (Adversaries,Eval(..),Force,Forced,Game,Player(..),PlayerState(..),ProbWin,Solve,Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -211,7 +211,7 @@ solution = Game.solve game Player1 initial
 forcedFoxBox :: Forced Pos
 forcedFoxBox = Game.forced game Player2 (const foxBox) Player1 initial
 
-maxForcedFoxBox :: Forced Pos
+maxForcedFoxBox :: Game.DfsResult Pos (Force,Int)
 maxForcedFoxBox = Game.gameMax game Player1 forcedFoxBox Player1 initial
 
 stopLossStrategy :: Player -> Int -> Strategy Pos
