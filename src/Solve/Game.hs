@@ -196,6 +196,27 @@ forced :: Ord p => Game p -> Player -> (Player -> p -> Bool) ->
 forced game fpl isp pl p = snd $ forcedWith game fpl isp Map.empty pl p
 
 -------------------------------------------------------------------------------
+-- Maximizing a position value over a game
+-------------------------------------------------------------------------------
+
+gameMaxWith :: (Ord p, Ord v) => Game p -> Player -> DfsResult p v ->
+               DfsResult p v -> Player -> p -> (v, DfsResult p v)
+gameMaxWith game mpl pv = dfsWith pre post
+  where
+    pre pl p =
+        case game pl p of
+          Left _ -> Left (evalUnsafe pv pl p)
+          Right ps -> Right (map ((,) ()) ps)
+
+    post pl p = f . mapMaybe snd
+      where f = if pl == mpl then maximum . ((:) (evalUnsafe pv pl p))
+                else minimum
+
+gameMax :: (Ord p, Ord v) => Game p -> Player -> DfsResult p v ->
+           Player -> p -> DfsResult p v
+gameMax game mpl pv pl p = snd $ gameMaxWith game mpl pv Map.empty pl p
+
+-------------------------------------------------------------------------------
 -- Strategies
 -------------------------------------------------------------------------------
 

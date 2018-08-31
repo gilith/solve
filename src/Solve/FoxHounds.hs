@@ -211,6 +211,9 @@ solution = Game.solve game Player1 initial
 forcedFoxBox :: Forced Pos
 forcedFoxBox = Game.forced game Player2 (const foxBox) Player1 initial
 
+maxForcedFoxBox :: Forced Pos
+maxForcedFoxBox = Game.gameMax game Player1 forcedFoxBox Player1 initial
+
 stopLossStrategy :: Player -> Int -> Strategy Pos
 stopLossStrategy = Game.stopLossStrategy solution
 

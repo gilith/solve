@@ -54,6 +54,9 @@ depthFH =
       Win _ n -> n
       _ -> error "no winner"
 
+maxForcedFoxBoxFH :: Game.Force
+maxForcedFoxBoxFH = FH.evalInitial FH.maxForcedFoxBox
+
 stopLossFH :: Player -> Int -> Strategy FH.Pos
 stopLossFH pl n = Game.tryStrategy (FH.stopLossStrategy pl n)
 
@@ -162,8 +165,9 @@ main = do
     putStrLn $ "Reachable positions: " ++ show reachableFH
     putStrLn $ "Initial position index: " ++ show initialIdxFH
     putStrLn $ "Maximum reachable position index: " ++ show maxReachableIdxFH
-    putStrLn $ "Solution: " ++ FH.ppEval solutionFH ++ "\n"
-    putStrLn $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
+    putStrLn $ "Solution: " ++ FH.ppEval solutionFH
+    putStrLn $ "Maximum forced FoxBox: " ++ show maxForcedFoxBoxFH
+    putStrLn ""
     putStrLn $ "Win probabilities against strategies of different depths:"
     putStrLn $ showProbDepthFH probDepthFH
     putStr $ "Creating game database in " ++ db ++ ":"
