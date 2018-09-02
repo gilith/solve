@@ -142,7 +142,7 @@ showPosEntryFH (pos,fw,fb,(fbv,fbk),mvs) =
       show fbk :
       show mvn :
       concat (map showMove mvs) ++
-      replicate (3 * (FH.boardSize - mvn)) "NULL"
+      replicate (3 * (8 - mvn)) "NULL"
 
     mvn = length mvs
 

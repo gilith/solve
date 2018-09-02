@@ -199,7 +199,7 @@ forced game fpl isp pl p = snd $ forcedWith game fpl isp Map.empty pl p
 -- Maximizing a position value over a game
 -------------------------------------------------------------------------------
 
-gameMaxWith :: (Ord p, Ord v) => Game p -> Player -> DfsResult p v ->
+gameMaxWith :: (Ord p, Ord v) => Game p -> Player -> (Player -> p -> v) ->
                DfsResult p (v,Int) -> Player -> p -> ((v,Int), DfsResult p (v,Int))
 gameMaxWith game mpl pv = dfsWith pre post
   where
@@ -210,14 +210,15 @@ gameMaxWith game mpl pv = dfsWith pre post
 
     post pl p = orient . optimize . map (orient . valLater) . mapMaybe snd
       where
-        optimize vks = if pl == mpl then maximum (vk : vks) else minimum vks
+        optimize [] = vk
+        optimize vks = max vk ((if pl == mpl then maximum else minimum) vks)
         orient (v,k) = (v, negate k)
         vk = valNow pl p
 
-    valNow pl p = (evalUnsafe pv pl p, 0)
+    valNow pl p = (pv pl p, 0)
     valLater (v,k) = (v, k + 1)
 
-gameMax :: (Ord p, Ord v) => Game p -> Player -> DfsResult p v ->
+gameMax :: (Ord p, Ord v) => Game p -> Player -> (Player -> p -> v) ->
            Player -> p -> DfsResult p (v,Int)
 gameMax game mpl pv pl p = snd $ gameMaxWith game mpl pv Map.empty pl p
 

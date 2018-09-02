@@ -212,7 +212,7 @@ forcedFoxBox :: Forced Pos
 forcedFoxBox = Game.forced game Player2 (const foxBox) Player1 initial
 
 maxForcedFoxBox :: Game.DfsResult Pos (Force,Int)
-maxForcedFoxBox = Game.gameMax game Player1 forcedFoxBox Player1 initial
+maxForcedFoxBox = Game.gameMax game Player1 (Game.evalUnsafe forcedFoxBox) Player1 initial
 
 stopLossStrategy :: Player -> Int -> Strategy Pos
 stopLossStrategy = Game.stopLossStrategy solution
