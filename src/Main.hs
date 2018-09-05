@@ -20,7 +20,7 @@ import System.FilePath ((</>),(<.>))
 import System.IO (IOMode(..),hPutStrLn,withFile)
 
 import qualified Solve.FoxHounds as FH
-import Solve.Game (Adversaries,Eval(..),Force(..),Player(..),Strategy,StrategyFail)
+import Solve.Game (Adversaries,Eval(..),Force(..),Max(..),Player(..),Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -56,7 +56,7 @@ depthFH =
       Win _ n -> n
       _ -> error "no winner"
 
-maxForcedFoxBoxFH :: (Game.Force,Int)
+maxForcedFoxBoxFH :: Max Force
 maxForcedFoxBoxFH = FH.evalInitial FH.maxForcedFoxBox
 
 stopLossFH :: Player -> Int -> Strategy FH.Pos
@@ -110,10 +110,10 @@ maxIntCdfFH :: Integer
 maxIntCdfFH = 100000
 
 posEntryFH :: Adversaries FH.Pos -> (Player,FH.Pos) ->
-              ((FH.Idx,Bool,Force,(Force,Int),[(FH.Idx,Integer)]), Adversaries FH.Pos)
+              ((FH.Idx, Bool, Force, Max Force, [(FH.Idx,Integer)]), Adversaries FH.Pos)
 posEntryFH adv (pl,p) = ((FH.posToIdx p, fw, fb, fbm, moves mvs), adv')
   where
-    fw = Game.winning Player1 (Game.evalUnsafe FH.solution pl p)
+    fw = FH.winningForFox pl p
     fb = Game.evalUnsafe FH.forcedFoxBox pl p
     fbm = Game.evalUnsafe FH.maxForcedFoxBox pl p
     (mvs,adv') = FH.moveDist adv pl p
@@ -126,11 +126,11 @@ posEntryFH adv (pl,p) = ((FH.posToIdx p, fw, fb, fbm, moves mvs), adv')
         pieces q = Set.insert (FH.fox q) (FH.hounds q)
         m = fromInteger maxIntCdfFH
 
-posTableFH :: [(FH.Idx,Bool,Force,(Force,Int),[(FH.Idx,Integer)])]
+posTableFH :: [(FH.Idx, Bool, Force, Max Force, [(FH.Idx,Integer)])]
 posTableFH = fst $ mapLR posEntryFH FH.adversaries $ Map.keys FH.solution
 
-showPosEntryFH :: (FH.Idx,Bool,Force,(Force,Int),[(FH.Idx,Integer)]) -> String
-showPosEntryFH (pos,fw,fb,(fbv,fbk),mvs) =
+showPosEntryFH :: (FH.Idx, Bool, Force, Max Force, [(FH.Idx,Integer)]) -> String
+showPosEntryFH (pos, fw, fb, Max fbv fbk, mvs) =
     "INSERT INTO `foxhounds` VALUES " ++
     "(" ++ List.intercalate "," values ++ ");"
   where
@@ -154,7 +154,7 @@ showPosEntryFH (pos,fw,fb,(fbv,fbk),mvs) =
     showBool True = "'T'"
     showBool False = "'F'"
 
-writePosTableFH :: FilePath -> [(FH.Idx,Bool,Force,(Force,Int),[(FH.Idx,Integer)])] -> IO ()
+writePosTableFH :: FilePath -> [(FH.Idx, Bool, Force, Max Force, [(FH.Idx,Integer)])] -> IO ()
 writePosTableFH file entries = withFile file WriteMode $ \h ->
     mapM_ (hPutStrLn h . showPosEntryFH) entries
 

@@ -199,8 +199,18 @@ forced game fpl isp pl p = snd $ forcedWith game fpl isp Map.empty pl p
 -- Maximizing a position value over a game
 -------------------------------------------------------------------------------
 
+data Max v = Max v Int
+  deriving (Show,Eq)
+
+instance Ord v => Ord (Max v) where
+  compare (Max v1 k1) (Max v2 k2) =
+      case compare v1 v2 of
+        LT -> LT
+        EQ -> compare k2 k1
+        GT -> GT
+
 gameMaxWith :: (Ord p, Ord v) => Game p -> Player -> (Player -> p -> v) ->
-               DfsResult p (v,Int) -> Player -> p -> ((v,Int), DfsResult p (v,Int))
+               DfsResult p (Max v) -> Player -> p -> (Max v, DfsResult p (Max v))
 gameMaxWith game mpl pv = dfsWith pre post
   where
     pre pl p =
@@ -208,18 +218,17 @@ gameMaxWith game mpl pv = dfsWith pre post
           Left _ -> Left (valNow pl p)
           Right ps -> Right (map ((,) ()) ps)
 
-    post pl p = orient . optimize . map (orient . valLater) . mapMaybe snd
+    post pl p = optimize . map valLater . mapMaybe snd
       where
         optimize [] = vk
         optimize vks = max vk ((if pl == mpl then maximum else minimum) vks)
-        orient (v,k) = (v, negate k)
         vk = valNow pl p
 
-    valNow pl p = (pv pl p, 0)
-    valLater (v,k) = (v, k + 1)
+    valNow pl p = Max (pv pl p) 0
+    valLater (Max v k) = Max v (k + 1)
 
 gameMax :: (Ord p, Ord v) => Game p -> Player -> (Player -> p -> v) ->
-           Player -> p -> DfsResult p (v,Int)
+           Player -> p -> DfsResult p (Max v)
 gameMax game mpl pv pl p = snd $ gameMaxWith game mpl pv Map.empty pl p
 
 -------------------------------------------------------------------------------
@@ -231,6 +240,10 @@ type Weight = Double
 
 -- Strategies can filter out positions and change weights
 type Strategy p = [(Weight,p)] -> [(Weight,p)]
+
+probStrategy :: Strategy p -> [p] -> [(Prob,p)]
+probStrategy str ps = zip (normalize ws) ps'
+  where (ws,ps') = unzip $ applyStrategy str ps
 
 applyStrategy :: Strategy p -> [p] -> [(Weight,p)]
 applyStrategy str ps =
@@ -261,6 +274,14 @@ tryStrategy = flip orelseStrategy idStrategy
 
 filterStrategy :: (p -> Bool) -> Strategy p
 filterStrategy f = filter (f . snd)
+
+maxStrategy :: Ord v => (p -> v) -> Strategy p
+maxStrategy _ [] = []
+maxStrategy pv ps = mapMaybe f $ zip ps vs
+  where
+    f (p,w) = if w == v then Just p else Nothing
+    vs = map (pv . snd) ps
+    v = maximum vs
 
 stopLossStrategy :: Ord p => Solve p -> Player -> Int -> Strategy p
 stopLossStrategy sol pl n = filterStrategy f

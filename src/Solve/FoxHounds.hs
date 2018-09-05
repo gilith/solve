@@ -17,7 +17,7 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Adversaries,Eval(..),Force,Forced,Game,Player(..),PlayerState(..),ProbWin,Solve,Strategy,StrategyFail)
+import Solve.Game (Adversaries,Eval(..),Force,Forced,Game,Max(..),Player(..),PlayerState(..),ProbWin,Solve,Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -204,6 +204,15 @@ evalInitial db = Game.evalUnsafe db Player1 initial
 solution :: Solve Pos
 solution = Game.solve game Player1 initial
 
+winningFor :: Player -> Player -> Pos -> Bool
+winningFor wpl pl p = Game.winning wpl (Game.evalUnsafe solution pl p)
+
+winningForFox :: Player -> Pos -> Bool
+winningForFox = winningFor Player1
+
+winningForHounds :: Player -> Pos -> Bool
+winningForHounds = winningFor Player2
+
 -------------------------------------------------------------------------------
 -- Strategies
 -------------------------------------------------------------------------------
@@ -211,7 +220,7 @@ solution = Game.solve game Player1 initial
 forcedFoxBox :: Forced Pos
 forcedFoxBox = Game.forced game Player2 (const foxBox) Player1 initial
 
-maxForcedFoxBox :: Game.DfsResult Pos (Force,Int)
+maxForcedFoxBox :: Game.DfsResult Pos (Max Force)
 maxForcedFoxBox = Game.gameMax game Player1 (Game.evalUnsafe forcedFoxBox) Player1 initial
 
 stopLossStrategy :: Player -> Int -> Strategy Pos
@@ -220,7 +229,13 @@ stopLossStrategy = Game.stopLossStrategy solution
 foxBoxStrategy :: Int -> Strategy Pos
 foxBoxStrategy = Game.forcedStrategy forcedFoxBox Player2
 
--- Best known strategies
+maxFoxBoxStrategy :: Player -> Strategy Pos
+maxFoxBoxStrategy pl =
+    Game.thenStrategy
+      (Game.filterStrategy (winningForHounds pl))
+      (Game.maxStrategy (Game.evalUnsafe maxForcedFoxBox pl))
+
+-- Best known parameterized strategies
 
 foxStrategy :: Int -> Strategy Pos
 foxStrategy n = Game.tryStrategy (stopLossStrategy Player1 n)
@@ -251,7 +266,13 @@ probWin :: Player -> Strategy Pos -> ProbWin Pos
 probWin pl adv = Game.probWin game pl adv Player1 initial
 
 moveDist :: Adversaries Pos -> Player -> Pos -> ([(Prob,Pos)], Adversaries Pos)
-moveDist = Game.moveDist game solution
+moveDist adv pl p =
+    if winningForFox pl p then Game.moveDist game solution adv pl p
+    else (pps,adv)
+  where
+    pps = case game pl p of
+            Left _ -> []
+            Right ps -> Game.probStrategy (maxFoxBoxStrategy (Game.turn pl)) ps
 
 -------------------------------------------------------------------------------
 -- Pretty printing
