@@ -267,12 +267,10 @@ probWin pl adv = Game.probWin game pl adv Player1 initial
 
 moveDist :: Adversaries Pos -> Player -> Pos -> ([(Prob,Pos)], Adversaries Pos)
 moveDist adv pl p =
-    if winningForFox pl p then Game.moveDist game solution adv pl p
-    else (pps,adv)
-  where
-    pps = case game pl p of
-            Left _ -> []
-            Right ps -> Game.probStrategy (maxFoxBoxStrategy (Game.turn pl)) ps
+    if winningForFox pl p then
+      Game.moveDist game solution adv pl p
+    else
+      (Game.moveDistStrategy game (maxFoxBoxStrategy (Game.turn pl)) pl p, adv)
 
 -------------------------------------------------------------------------------
 -- Pretty printing

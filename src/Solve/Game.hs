@@ -97,7 +97,7 @@ delay Draw = Draw
 -------------------------------------------------------------------------------
 
 --
--- The list of legal moves must not be empty
+-- The list of legal moves must not be empty or contain duplicate positions
 --
 type Game p = Player -> p -> Either Eval [p]
 
@@ -238,12 +238,23 @@ gameMax game mpl pv pl p = snd $ gameMaxWith game mpl pv Map.empty pl p
 -- Weights are positive
 type Weight = Double
 
--- Strategies can filter out positions and change weights
+-- Strategies may filter out positions and change weights
 type Strategy p = [(Weight,p)] -> [(Weight,p)]
 
-probStrategy :: Strategy p -> [p] -> [(Prob,p)]
-probStrategy str ps = zip (normalize ws) ps'
-  where (ws,ps') = unzip $ applyStrategy str ps
+moveDistStrategy :: Eq p => Game p -> Strategy p -> Player -> p -> [(Prob,p)]
+moveDistStrategy game str pl p =
+    case game pl p of
+      Left _ -> []
+      Right ps -> distStrategy str ps
+
+distStrategy :: Eq p => Strategy p -> [p] -> [(Prob,p)]
+distStrategy str ps = map pdf ps
+  where
+    pdf p = case filter ((== p) . snd) pps of
+              [] -> (0.0,p)
+              pp : _ -> pp
+    (ws,ps') = unzip $ applyStrategy str ps
+    pps = zip (normalize ws) ps'
 
 applyStrategy :: Strategy p -> [p] -> [(Weight,p)]
 applyStrategy str ps =
