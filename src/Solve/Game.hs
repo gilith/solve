@@ -92,6 +92,10 @@ delay :: Eval -> Eval
 delay (Win p n) = Win p (n + 1)
 delay Draw = Draw
 
+turnEval :: Eval -> Eval
+turnEval (Win pl n) = Win (turn pl) n
+turnEval Draw = Draw
+
 -------------------------------------------------------------------------------
 -- Game definition
 -------------------------------------------------------------------------------
@@ -303,8 +307,7 @@ stopLossStrategy sol pl n = filterStrategy f
 
 forcedStrategy :: Ord p => Forced p -> Player -> Int -> Strategy p
 forcedStrategy frc pl n = filterStrategy f
-  where
-    f = (>) (ForceIn n) . evalUnsafe frc (turn pl)
+  where f = (>) (ForceIn n) . evalUnsafe frc (turn pl)
 
 -------------------------------------------------------------------------------
 -- Validating strategies

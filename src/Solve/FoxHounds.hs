@@ -213,6 +213,12 @@ winningForFox = winningFor Player1
 winningForHounds :: Player -> Pos -> Bool
 winningForHounds = winningFor Player2
 
+winDepth :: Player -> Pos -> Int
+winDepth pl p =
+    case Game.evalUnsafe solution pl p of
+      Win _ d -> d
+      Draw -> error "draws are not possible in this game"
+
 -------------------------------------------------------------------------------
 -- Strategies
 -------------------------------------------------------------------------------
@@ -265,12 +271,13 @@ validateStrategy pl str =
 probWin :: Player -> Strategy Pos -> ProbWin Pos
 probWin pl adv = Game.probWin game pl adv Player1 initial
 
-moveDist :: Adversaries Pos -> Player -> Pos -> ([(Prob,Pos)], Adversaries Pos)
-moveDist adv pl p =
-    if winningForFox pl p then
-      Game.moveDist game solution adv pl p
-    else
-      (Game.moveDistStrategy game (maxFoxBoxStrategy (Game.turn pl)) pl p, adv)
+moveDist :: Player -> Pos -> [(Prob,Pos)]
+moveDist pl p = Game.moveDistStrategy game str pl p
+  where
+    str = if winningForFox pl p then strH else strF
+    strF = maxFoxBoxStrategy pl'
+    strH = Game.maxStrategy (Game.turnEval . Game.evalUnsafe solution pl')
+    pl' = Game.turn pl
 
 -------------------------------------------------------------------------------
 -- Pretty printing

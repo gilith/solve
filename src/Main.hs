@@ -20,7 +20,7 @@ import System.FilePath ((</>),(<.>))
 import System.IO (IOMode(..),hPutStrLn,withFile)
 
 import qualified Solve.FoxHounds as FH
-import Solve.Game (Adversaries,Eval(..),Force(..),Max(..),Player(..),Strategy,StrategyFail)
+import Solve.Game (Eval(..),Force(..),Max(..),Player(..),Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -109,14 +109,14 @@ showProbDepthFH ps =
 maxIntCdfFH :: Integer
 maxIntCdfFH = 100000
 
-posEntryFH :: Adversaries FH.Pos -> (Player,FH.Pos) ->
-              ((FH.Idx, Bool, Force, Max Force, [(FH.Idx,Integer)]), Adversaries FH.Pos)
-posEntryFH adv (pl,p) = ((FH.posToIdx p, fw, fb, fbm, moves mvs), adv')
+posEntryFH :: (Player,FH.Pos) ->
+              (FH.Idx, (Bool,Int), Force, Max Force, [(FH.Idx,Integer)])
+posEntryFH (pl,p) = (FH.posToIdx p, w, fb, fbm, moves mvs)
   where
-    fw = FH.winningForFox pl p
+    w = (FH.winningForFox pl p, FH.winDepth pl p)
     fb = Game.evalUnsafe FH.forcedFoxBox pl p
     fbm = Game.evalUnsafe FH.maxForcedFoxBox pl p
-    (mvs,adv') = FH.moveDist adv pl p
+    mvs = FH.moveDist pl p
 
     moves = fst . mapLR cdf 0.0 . map snd . List.sort . map posIdx
       where
@@ -126,17 +126,19 @@ posEntryFH adv (pl,p) = ((FH.posToIdx p, fw, fb, fbm, moves mvs), adv')
         pieces q = Set.insert (FH.fox q) (FH.hounds q)
         m = fromInteger maxIntCdfFH
 
-posTableFH :: [(FH.Idx, Bool, Force, Max Force, [(FH.Idx,Integer)])]
-posTableFH = fst $ mapLR posEntryFH FH.adversaries $ Map.keys FH.solution
+posTableFH :: [(FH.Idx, (Bool,Int), Force, Max Force, [(FH.Idx,Integer)])]
+posTableFH = map posEntryFH $ Map.keys FH.solution
 
-showPosEntryFH :: (FH.Idx, Bool, Force, Max Force, [(FH.Idx,Integer)]) -> String
-showPosEntryFH (pos, fw, fb, Max fbv fbk, mvs) =
+showPosEntryFH :: (FH.Idx, (Bool,Int), Force, Max Force, [(FH.Idx,Integer)]) ->
+                  String
+showPosEntryFH (pos, (wf,wd), fb, Max fbv fbk, mvs) =
     "INSERT INTO `foxhounds` VALUES " ++
     "(" ++ List.intercalate "," values ++ ");"
   where
     values =
       show pos :
-      showBool fw :
+      showBool wf :
+      show wd :
       showForce fb :
       showForce fbv :
       show fbk :
@@ -154,7 +156,8 @@ showPosEntryFH (pos, fw, fb, Max fbv fbk, mvs) =
     showBool True = "'T'"
     showBool False = "'F'"
 
-writePosTableFH :: FilePath -> [(FH.Idx, Bool, Force, Max Force, [(FH.Idx,Integer)])] -> IO ()
+writePosTableFH :: FilePath ->
+                   [(FH.Idx, (Bool,Int), Force, Max Force, [(FH.Idx,Integer)])] -> IO ()
 writePosTableFH file entries = withFile file WriteMode $ \h ->
     mapM_ (hPutStrLn h . showPosEntryFH) entries
 
@@ -178,8 +181,11 @@ main = do
     putStrLn $ "Solution: " ++ FH.ppEval solutionFH
     putStrLn $ "Maximum forced FoxBox: " ++ show maxForcedFoxBoxFH
     putStrLn ""
-    putStrLn $ "Win probabilities against strategies of different depths:"
-    putStrLn $ showProbDepthFH probDepthFH
+    putStr $ "FoxBox strategy failure positions: "
+    putStrLn $ showStrategyFailFH foxBoxStrategyFailFH
+    --putStrLn ""
+    --putStrLn $ "Win probabilities against strategies of different depths:"
+    --putStrLn $ showProbDepthFH probDepthFH
     putStr $ "Creating game database in " ++ db ++ ":"
     writePosTableFH db posTableFH
     putStrLn $ " " ++ show (length posTableFH) ++ " rows"
