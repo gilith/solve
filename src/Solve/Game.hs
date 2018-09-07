@@ -82,6 +82,9 @@ betterEval pl (Win pl1 _) Draw = pl1 == pl
 betterEval pl Draw (Win pl2 _) = pl2 /= pl
 betterEval _ Draw Draw = False
 
+sameEval :: Eval -> Eval -> Bool
+sameEval e1 e2 = not (betterEval Player1 e1 e2 || betterEval Player2 e1 e2)
+
 winning :: Player -> Eval -> Bool
 winning pl e = betterEval pl e Draw
 
@@ -119,10 +122,10 @@ type DfsPre p a v = Player -> Graph.DfsPre p a v
 
 type DfsPost p a v = Player -> Graph.DfsPost p a v
 
-type DfsResult p v = Graph.DfsResult (Player,p) v
+type Val p v = Graph.DfsResult (Player,p) v
 
 dfsWith :: Ord p => DfsPre p a v -> DfsPost p a v ->
-           DfsResult p v -> Player -> p -> (v, DfsResult p v)
+           Val p v -> Player -> p -> (v, Val p v)
 dfsWith pre post = curry . Graph.dfsWith pre' post'
   where
     pre' (pl,p) =
@@ -136,17 +139,17 @@ dfsWith pre post = curry . Graph.dfsWith pre' post'
 
     delPl ((a,(_,p)),v) = ((a,p),v)
 
-eval :: Ord p => DfsResult p v -> Player -> p -> Maybe v
+eval :: Ord p => Val p v -> Player -> p -> Maybe v
 eval = curry . Graph.eval
 
-evalUnsafe :: Ord p => DfsResult p v -> Player -> p -> v
+evalUnsafe :: Ord p => Val p v -> Player -> p -> v
 evalUnsafe = curry . Graph.evalUnsafe
 
 -------------------------------------------------------------------------------
 -- Game solution
 -------------------------------------------------------------------------------
 
-type Solve p = DfsResult p Eval
+type Solve p = Val p Eval
 
 solveWith :: Ord p => Game p -> Solve p -> Player -> p -> (Eval, Solve p)
 solveWith game = dfsWith pre post
@@ -173,7 +176,7 @@ data Force =
   | ForceNever
   deriving (Eq,Ord,Show)
 
-type Forced p = DfsResult p Force
+type Forced p = Val p Force
 
 bestForce :: Ord a => Player -> Player -> [a] -> a
 bestForce fpl pl = if fpl == pl then minimum else maximum
@@ -214,7 +217,7 @@ instance Ord v => Ord (Max v) where
         GT -> GT
 
 gameMaxWith :: (Ord p, Ord v) => Game p -> Player -> (Player -> p -> v) ->
-               DfsResult p (Max v) -> Player -> p -> (Max v, DfsResult p (Max v))
+               Val p (Max v) -> Player -> p -> (Max v, Val p (Max v))
 gameMaxWith game mpl pv = dfsWith pre post
   where
     pre pl p =
@@ -232,7 +235,7 @@ gameMaxWith game mpl pv = dfsWith pre post
     valLater (Max v k) = Max v (k + 1)
 
 gameMax :: (Ord p, Ord v) => Game p -> Player -> (Player -> p -> v) ->
-           Player -> p -> DfsResult p (Max v)
+           Player -> p -> Val p (Max v)
 gameMax game mpl pv pl p = snd $ gameMaxWith game mpl pv Map.empty pl p
 
 -------------------------------------------------------------------------------
@@ -290,6 +293,9 @@ tryStrategy = flip orelseStrategy idStrategy
 filterStrategy :: (p -> Bool) -> Strategy p
 filterStrategy f = filter (f . snd)
 
+sameEvalStrategy :: Eval -> (p -> Eval) -> Strategy p
+sameEvalStrategy e pe = filterStrategy (sameEval e . pe)
+
 maxStrategy :: Ord v => (p -> v) -> Strategy p
 maxStrategy _ [] = []
 maxStrategy pv ps = mapMaybe f $ zip ps vs
@@ -297,6 +303,10 @@ maxStrategy pv ps = mapMaybe f $ zip ps vs
     f (p,w) = if w == v then Just p else Nothing
     vs = map (pv . snd) ps
     v = maximum vs
+
+bestStrategy :: Player -> (p -> Eval) -> Strategy p
+bestStrategy Player1 pe = maxStrategy pe
+bestStrategy Player2 pe = maxStrategy (turnEval . pe)
 
 stopLossStrategy :: Ord p => Solve p -> Player -> Int -> Strategy p
 stopLossStrategy sol pl n = filterStrategy f
@@ -343,7 +353,7 @@ validateStrategy game sol spl str = \ipl -> fst . dfsWith pre post Map.empty ipl
 -- Compute probability of win
 -------------------------------------------------------------------------------
 
-type ProbWin p = DfsResult p Prob
+type ProbWin p = Val p Prob
 
 type Adversaries p = PlayerState [(Strategy p, ProbWin p)]
 
