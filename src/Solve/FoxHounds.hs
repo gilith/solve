@@ -17,7 +17,7 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Adversaries,Eval(..),Force,Forced,Game,Max(..),Player(..),PlayerState(..),ProbWin,Solve,Strategy,StrategyFail,Val)
+import Solve.Game (Adversaries,Eval(..),Event,Force,Game,Max(..),Player(..),PlayerState(..),ProbWin,Solve,Strategy,StrategyFail,Val)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -119,8 +119,8 @@ occupied p c = c == fox p || Set.member c (hounds p)
 empty :: Pos -> Coord -> Bool
 empty p = not . occupied p
 
-foxBox :: Pos -> Bool
-foxBox p = Set.isSubsetOf f h
+isFoxBox :: Pos -> Bool
+isFoxBox p = Set.isSubsetOf f h
   where
     f = foxReachable (hounds p) (fox p)
     h = houndsReachable (hounds p)
@@ -188,14 +188,17 @@ won _ _ | otherwise = Nothing
 
 game :: Game Pos
 game pl p =
-    if null ps then Left (Game.win (Game.turn pl))
-    else if foxEscaped p then Left (Game.win Player1)
+    if null ps then Left (Game.winEval (Game.turn pl))
+    else if foxEscaped p then Left (Game.winEval Player1)
     else Right ps
   where
     ps = move pl p
 
 evalInitial :: Val Pos v -> v
 evalInitial db = Game.evalUnsafe db Player1 initial
+
+bfsInitial :: [(Player,Pos)]
+bfsInitial = Game.bfs game Player1 initial
 
 -------------------------------------------------------------------------------
 -- Solution
@@ -223,20 +226,20 @@ winDepth pl p =
 -- Strategies
 -------------------------------------------------------------------------------
 
-forcedFoxBox :: Forced Pos
-forcedFoxBox = Game.forced game Player2 (const foxBox) Player1 initial
+foxBox :: Force Pos
+foxBox = Game.force game Player2 (const isFoxBox) Player1 initial
 
-maxForcedFoxBox :: Val Pos (Max Force)
-maxForcedFoxBox = Game.gameMax game Player1 (Game.evalUnsafe forcedFoxBox) Player1 initial
+maxFoxBox :: Val Pos (Max Event)
+maxFoxBox = Game.gameMax game Player1 (Game.evalUnsafe foxBox) Player1 initial
 
 stopLossStrategy :: Player -> Int -> Strategy Pos
 stopLossStrategy = Game.stopLossStrategy solution
 
 foxBoxStrategy :: Int -> Strategy Pos
-foxBoxStrategy = Game.forcedStrategy forcedFoxBox Player2
+foxBoxStrategy = Game.forceStrategy foxBox Player2
 
 maxFoxBoxStrategy :: Player -> Strategy Pos
-maxFoxBoxStrategy = Game.maxStrategy . Game.evalUnsafe maxForcedFoxBox
+maxFoxBoxStrategy = Game.maxStrategy . Game.evalUnsafe maxFoxBox
 
 -- Best known parameterized strategies
 
@@ -258,7 +261,7 @@ adversaries = PlayerState (mk houndsStrategy, mk foxStrategy)
 strategy :: Player -> Pos -> Strategy Pos
 strategy pl p =
     Game.thenStrategy
-      (Game.sameEvalStrategy e pe)
+      (Game.sameResultStrategy e pe)
       (if Game.winning Player1 e then strH else strF)
   where
     strF = maxFoxBoxStrategy pl'
@@ -284,6 +287,22 @@ validateStrategy pl str =
 
 probWin :: Player -> Strategy Pos -> ProbWin Pos
 probWin pl adv = Game.probWin game pl adv Player1 initial
+
+-------------------------------------------------------------------------------
+-- The opposite position is reachable and has a different result
+-------------------------------------------------------------------------------
+
+opposite :: (Player,Pos)
+opposite =
+    case filter (opp . ev) bfsInitial of
+      [] -> error "no opposite positions"
+      p : _ -> p
+  where
+    opp = not . Game.sameResult (evalInitial solution)
+    ev = uncurry $ Game.evalUnsafe solution
+
+evalOpposite :: Val Pos v -> v
+evalOpposite db = uncurry (Game.evalUnsafe db) opposite
 
 -------------------------------------------------------------------------------
 -- Pretty printing

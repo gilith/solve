@@ -11,6 +11,8 @@ portability: portable
 module Solve.Game
 where
 
+import Data.Function (on)
+import Data.List (maximumBy)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe,isJust,mapMaybe)
 import Data.Set (Set)
@@ -48,11 +50,33 @@ updatePlayerState f (PlayerState (s1,s2)) Player2 = (x, PlayerState (s1,s2'))
   where (x,s2') = f s2
 
 -------------------------------------------------------------------------------
+-- Game length
+-------------------------------------------------------------------------------
+
+type Moves = Int
+
+data Event =
+    In Moves
+  | Never
+  deriving (Eq,Ord,Show)
+
+now :: Event
+now = In 0
+
+delay :: Event -> Event
+delay (In n) = In (n + 1)
+delay Never = Never
+
+nowOrNever :: Bool -> Event
+nowOrNever True = now
+nowOrNever False = Never
+
+-------------------------------------------------------------------------------
 -- Position evaluations
 -------------------------------------------------------------------------------
 
 data Eval =
-    Win Player Int
+    Win Player Moves
   | Draw
   deriving (Eq,Show)
 
@@ -68,36 +92,42 @@ instance Ord Eval where
   compare _ (Win Player2 _) = GT
   compare Draw Draw = EQ
 
-better :: Ord a => Player -> a -> a -> Bool
-better Player1 x y = x > y
-better Player2 x y = x < y
-
-best :: Ord a => Player -> [a] -> a
-best Player1 = maximum
-best Player2 = minimum
+compareEval :: Player -> Eval -> Eval -> Ordering
+compareEval Player1 = compare
+compareEval Player2 = flip compare
 
 betterEval :: Player -> Eval -> Eval -> Bool
-betterEval pl (Win pl1 _) (Win pl2 _) = pl1 == pl && pl2 /= pl
-betterEval pl (Win pl1 _) Draw = pl1 == pl
-betterEval pl Draw (Win pl2 _) = pl2 /= pl
-betterEval _ Draw Draw = False
+betterEval pl x y =
+    case compareEval pl x y of
+      GT -> True
+      _ -> False
 
-sameEval :: Eval -> Eval -> Bool
-sameEval e1 e2 = not (betterEval Player1 e1 e2 || betterEval Player2 e1 e2)
+bestEval :: Player -> [Eval] -> Eval
+bestEval = maximumBy . compareEval
 
-winning :: Player -> Eval -> Bool
-winning pl e = betterEval pl e Draw
+winEval :: Player -> Eval
+winEval p = Win p 0
 
-win :: Player -> Eval
-win p = Win p 0
-
-delay :: Eval -> Eval
-delay (Win p n) = Win p (n + 1)
-delay Draw = Draw
+delayEval :: Eval -> Eval
+delayEval (Win p n) = Win p (n + 1)
+delayEval Draw = Draw
 
 turnEval :: Eval -> Eval
 turnEval (Win pl n) = Win (turn pl) n
 turnEval Draw = Draw
+
+betterResult :: Player -> Eval -> Eval -> Bool
+betterResult pl (Win pl1 _) (Win pl2 _) = pl1 == pl && pl2 /= pl
+betterResult pl (Win pl1 _) Draw = pl1 == pl
+betterResult pl Draw (Win pl2 _) = pl2 /= pl
+betterResult _ Draw Draw = False
+
+sameResult :: Eval -> Eval -> Bool
+sameResult e1 e2 =
+    not (betterResult Player1 e1 e2 || betterResult Player2 e1 e2)
+
+winning :: Player -> Eval -> Bool
+winning pl e = betterResult pl e Draw
 
 -------------------------------------------------------------------------------
 -- Game definition
@@ -146,6 +176,14 @@ evalUnsafe :: Ord p => Val p v -> Player -> p -> v
 evalUnsafe = curry . Graph.evalUnsafe
 
 -------------------------------------------------------------------------------
+-- Breadth-first search
+-------------------------------------------------------------------------------
+
+bfs :: Ord p => Game p -> Player -> p -> [(Player,p)]
+bfs game = curry $ Graph.bfs next
+  where next (pl,p) = map ((,) (turn pl)) $ move game pl p
+
+-------------------------------------------------------------------------------
 -- Game solution
 -------------------------------------------------------------------------------
 
@@ -159,7 +197,7 @@ solveWith game = dfsWith pre post
           Left v -> Left v
           Right ps -> Right (map ((,) ()) ps)
 
-    post pl _ = delay . best pl . map (fromMaybe Draw . snd)
+    post pl _ = delayEval . bestEval pl . map (fromMaybe Draw . snd)
 
 solve :: Ord p => Game p -> Player -> p -> Solve p
 solve game pl p = snd $ solveWith game Map.empty pl p
@@ -168,45 +206,35 @@ reachable :: Solve p -> Int
 reachable = Map.size
 
 -------------------------------------------------------------------------------
--- Forcing states that satisfy a predicate
+-- Forcing positions that satisfy a predicate
 -------------------------------------------------------------------------------
 
-data Force =
-    ForceIn Int
-  | ForceNever
-  deriving (Eq,Ord,Show)
+type Force p = Val p Event
 
-type Forced p = Val p Force
-
-bestForce :: Ord a => Player -> Player -> [a] -> a
-bestForce fpl pl = if fpl == pl then minimum else maximum
-
-delayForce :: Force -> Force
-delayForce (ForceIn n) = ForceIn (n + 1)
-delayForce ForceNever = ForceNever
-
-forcedWith :: Ord p => Game p -> Player -> (Player -> p -> Bool) ->
-              Forced p -> Player -> p -> (Force, Forced p)
-forcedWith game fpl isp = dfsWith pre post
+forceWith :: Ord p => Game p -> Player -> (Player -> p -> Bool) ->
+             Force p -> Player -> p -> (Event, Force p)
+forceWith game fpl isp = dfsWith pre post
   where
+    best pl = if pl == fpl then minimum else maximum
+
     pre pl p =
         case game pl p of
-          Left _ -> Left (if isp pl p then ForceIn 0 else ForceNever)
+          Left _ -> Left (nowOrNever (isp pl p))
           Right ps -> Right (map ((,) ()) ps)
 
     post pl p =
-        if isp pl p then const (ForceIn 0)
-        else delayForce . bestForce fpl pl . map (fromMaybe ForceNever . snd)
+        if isp pl p then const now
+        else delay . best pl . map (fromMaybe Never . snd)
 
-forced :: Ord p => Game p -> Player -> (Player -> p -> Bool) ->
-          Player -> p -> Forced p
-forced game fpl isp pl p = snd $ forcedWith game fpl isp Map.empty pl p
+force :: Ord p => Game p -> Player -> (Player -> p -> Bool) ->
+         Player -> p -> Force p
+force game fpl isp pl p = snd $ forceWith game fpl isp Map.empty pl p
 
 -------------------------------------------------------------------------------
 -- Maximizing a position value over a game
 -------------------------------------------------------------------------------
 
-data Max v = Max v Int
+data Max v = Max v Moves
   deriving (Show,Eq)
 
 instance Ord v => Ord (Max v) where
@@ -293,8 +321,8 @@ tryStrategy = flip orelseStrategy idStrategy
 filterStrategy :: (p -> Bool) -> Strategy p
 filterStrategy f = filter (f . snd)
 
-sameEvalStrategy :: Eval -> (p -> Eval) -> Strategy p
-sameEvalStrategy e pe = filterStrategy (sameEval e . pe)
+sameResultStrategy :: Eval -> (p -> Eval) -> Strategy p
+sameResultStrategy e pe = filterStrategy (sameResult e . pe)
 
 maxStrategy :: Ord v => (p -> v) -> Strategy p
 maxStrategy _ [] = []
@@ -308,16 +336,16 @@ bestStrategy :: Player -> (p -> Eval) -> Strategy p
 bestStrategy Player1 pe = maxStrategy pe
 bestStrategy Player2 pe = maxStrategy (turnEval . pe)
 
-stopLossStrategy :: Ord p => Solve p -> Player -> Int -> Strategy p
+stopLossStrategy :: Ord p => Solve p -> Player -> Moves -> Strategy p
 stopLossStrategy sol pl n = filterStrategy f
   where
-    f p = let e = evalUnsafe sol pl' p in not (better pl' e ok)
+    f p = let e = evalUnsafe sol pl' p in not (betterEval pl' e ok)
     ok = Win pl' n
     pl' = turn pl
 
-forcedStrategy :: Ord p => Forced p -> Player -> Int -> Strategy p
-forcedStrategy frc pl n = filterStrategy f
-  where f = (>) (ForceIn n) . evalUnsafe frc (turn pl)
+forceStrategy :: Ord p => Force p -> Player -> Moves -> Strategy p
+forceStrategy frc pl n = filterStrategy f
+  where f = (>) (In n) . evalUnsafe frc (turn pl)
 
 -------------------------------------------------------------------------------
 -- Validating strategies
@@ -335,7 +363,7 @@ validateStrategy game sol spl str = \ipl -> fst . dfsWith pre post Map.empty ipl
 
     post pl p pfs =
         if pl /= spl then fs
-        else if betterEval pl (fst z) (fst n) then fs'
+        else if betterResult pl (fst z) (fst n) then fs'
         else fs
       where
         fs = Set.unions (mapMaybe snd pfs)
@@ -345,7 +373,7 @@ validateStrategy game sol spl str = \ipl -> fst . dfsWith pre post Map.empty ipl
 
     strategize pl = if pl == spl then applyStrategy str else weightlessStrategy
 
-    bestStr = best spl . map (evalSol (turn spl))
+    bestStr = maximumBy (compareEval spl `on` fst) . map (evalSol (turn spl))
 
     evalSol pl p = (evalUnsafe sol pl p, p)
 
@@ -414,7 +442,7 @@ moveDist game sol advs pl p =
     prob (adv,pw) q = (pr,(adv,pw'))
       where (pr,pw') = probWinWith game wpl adv pw pl' q
 
-    notBad = not . betterEval pl ev . evalUnsafe sol pl'
+    notBad = not . betterResult pl ev . evalUnsafe sol pl'
 
     ev = evalUnsafe sol pl p
 

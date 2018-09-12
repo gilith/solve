@@ -13,6 +13,8 @@ where
 
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Sequence (ViewL(..),(><))
+import qualified Data.Sequence as Sequence
 import qualified Data.Set as Set
 
 import Solve.Util
@@ -59,3 +61,18 @@ evalUnsafe db n =
     case eval db n of
       Just v -> v
       Nothing -> error "node not in database"
+
+-------------------------------------------------------------------------------
+-- Breadth-first search
+-------------------------------------------------------------------------------
+
+bfs :: Ord n => (n -> [n]) -> n -> [n]
+bfs next = go Set.empty . Sequence.singleton
+  where
+    go s l = case Sequence.viewl l of
+               EmptyL -> []
+               h :< t -> if Set.member h s then go s t
+                         else h : go s' l'
+                           where
+                             s' = Set.insert h s
+                             l' = t >< Sequence.fromList (next h)

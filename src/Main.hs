@@ -20,7 +20,7 @@ import System.FilePath ((</>),(<.>))
 import System.IO (IOMode(..),hPutStrLn,withFile)
 
 import qualified Solve.FoxHounds as FH
-import Solve.Game (Eval(..),Force(..),Max(..),Player(..),Strategy,StrategyFail)
+import Solve.Game (Eval(..),Event(..),Max(..),Player(..),Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -56,11 +56,14 @@ depthFH =
       Win _ n -> n
       _ -> error "no winner"
 
-maxForcedFoxBoxFH :: Max Force
-maxForcedFoxBoxFH = FH.evalInitial FH.maxForcedFoxBox
+maxFoxBoxFH :: Max Event
+maxFoxBoxFH = FH.evalInitial FH.maxFoxBox
 
-stopLossFH :: Player -> Int -> Strategy FH.Pos
-stopLossFH pl n = Game.tryStrategy (FH.stopLossStrategy pl n)
+oppositeSolutionFH :: Eval
+oppositeSolutionFH = FH.evalOpposite FH.solution
+
+oppositeMaxFoxBoxFH :: Max Event
+oppositeMaxFoxBoxFH = FH.evalOpposite FH.maxFoxBox
 
 foxBoxStrategyFailFH :: StrategyFail FH.Pos
 foxBoxStrategyFailFH =
@@ -81,41 +84,72 @@ showStrategyFailFH ps =
     tableFails =
         showTable ([] : header : concat (map rowsFail (Set.toList ps)) ++ [[]])
 
-probWinFH :: Int -> (Prob,Prob,Prob)
-probWinFH n =
-    (FH.evalInitial $ FH.probWin Player1 (stopLossFH Player2 n),
-     FH.evalInitial $ FH.probWin Player1 (FH.houndsStrategy n),
-     FH.evalInitial $ FH.probWin Player2 (FH.foxStrategy n))
+houndsStopLossFH :: Int -> Strategy FH.Pos
+houndsStopLossFH n = Game.tryStrategy (FH.stopLossStrategy Player2 n)
 
-probDepthFH :: [(Int,Prob,Prob,Prob)]
-probDepthFH = map f [0..depthFH]
+houndsStopLossFoxBox1FH :: Int -> Strategy FH.Pos
+houndsStopLossFoxBox1FH n =
+    Game.thenStrategy
+      (Game.tryStrategy (FH.stopLossStrategy Player2 n))
+      (Game.tryStrategy (FH.foxBoxStrategy 1))
+
+initialPositionsFH :: (String,String)
+initialPositionsFH =
+    case winnerFH of
+      Player1 -> ("opposite","initial")
+      Player2 -> ("intiial","opposite")
+
+probWinFH :: Int -> ((Prob,Prob,Prob),Prob)
+probWinFH n = ((f1,f2,f3),h1)
   where
-    f n = let (p1,p2,q) = probWinFH n in (n,p1,p2,q)
+    f1 = pfw $ houndsStopLossFH n
+    f2 = pfw $ houndsStopLossFoxBox1FH n
+    f3 = pfw $ FH.houndsStrategy n
 
-showProbDepthFH :: [(Int,Prob,Prob,Prob)] -> String
+    h1 = phw $ FH.foxStrategy n
+
+    pfw = pw Player1 (ip (fst initialPositionsFH))
+    phw = pw Player2 (ip (snd initialPositionsFH))
+
+    ip "initial" = (Player1,FH.initial)
+    ip "opposite" = FH.opposite
+    ip _ = error "unknown initial position"
+
+    pw spl (pl,p) adv = fst $ Game.probWinWith FH.game spl adv Map.empty pl p
+
+probDepthFH :: [(Int,((Prob,Prob,Prob),Prob))]
+probDepthFH = map f [0..depthFH]
+  where f n = (n, probWinFH n)
+
+showProbDepthFH :: [(Int,((Prob,Prob,Prob),Prob))] -> String
 showProbDepthFH ps =
     showTable
       ([] :
-       ["Strategy", "Fox wins", "Fox wins", "Hounds"] :
-       ["depth", "vs", "vs", "win"] :
-       ["", "StopLoss", "StopLoss", "vs"] :
-       ["", "", "+ FoxBox", "StopLoss"] :
+       ["Strategy", "Fox", "Fox wins", "Fox wins", "Hounds"] :
+       ["depth", "wins", "vs", "vs", "win"] :
+       ["", "vs", "StopLoss", "StopLoss", "vs"] :
+       ["", "StopLoss", "+FoxBox1", "+ FoxBox", "StopLoss"] :
+       ["", "from", "from", "from", "from"] :
+       ["", ifp, ifp, ifp, ihp] :
        [] :
        map row ps ++
        [[]])
   where
-    row (n,f1,f2,h) = [show n, showProb f1, showProb f2, showProb h]
+    (ifp,ihp) = initialPositionsFH
+
+    row (n,((f1,f2,f3),h1)) =
+        [show n, showProb f1, showProb f2, showProb f3, showProb h1]
 
 maxIntCdfFH :: Integer
 maxIntCdfFH = 100000
 
 posEntryFH :: (Player,FH.Pos) ->
-              (FH.Idx, (Bool,Int), Force, Max Force, [(FH.Idx,Integer)])
+              (FH.Idx, (Bool,Int), Event, Max Event, [(FH.Idx,Integer)])
 posEntryFH (pl,p) = (FH.posToIdx p, w, fb, fbm, moves mvs)
   where
     w = (FH.winningForFox pl p, FH.winDepth pl p)
-    fb = Game.evalUnsafe FH.forcedFoxBox pl p
-    fbm = Game.evalUnsafe FH.maxForcedFoxBox pl p
+    fb = Game.evalUnsafe FH.foxBox pl p
+    fbm = Game.evalUnsafe FH.maxFoxBox pl p
     mvs = FH.moveDist pl p
 
     moves = fst . mapLR cdf 0.0 . map snd . List.sort . map posIdx
@@ -126,10 +160,10 @@ posEntryFH (pl,p) = (FH.posToIdx p, w, fb, fbm, moves mvs)
         pieces q = Set.insert (FH.fox q) (FH.hounds q)
         m = fromInteger maxIntCdfFH
 
-posTableFH :: [(FH.Idx, (Bool,Int), Force, Max Force, [(FH.Idx,Integer)])]
+posTableFH :: [(FH.Idx, (Bool,Int), Event, Max Event, [(FH.Idx,Integer)])]
 posTableFH = map posEntryFH $ Map.keys FH.solution
 
-showPosEntryFH :: (FH.Idx, (Bool,Int), Force, Max Force, [(FH.Idx,Integer)]) ->
+showPosEntryFH :: (FH.Idx, (Bool,Int), Event, Max Event, [(FH.Idx,Integer)]) ->
                   String
 showPosEntryFH (pos, (wf,wd), fb, Max fbv fbk, mvs) =
     "INSERT INTO `foxhounds` VALUES " ++
@@ -139,8 +173,8 @@ showPosEntryFH (pos, (wf,wd), fb, Max fbv fbk, mvs) =
       show pos :
       showBool wf :
       show wd :
-      showForce fb :
-      showForce fbv :
+      showEvent fb :
+      showEvent fbv :
       show fbk :
       show mvn :
       concat (map showMove mvs) ++
@@ -148,8 +182,8 @@ showPosEntryFH (pos, (wf,wd), fb, Max fbv fbk, mvs) =
 
     mvn = length mvs
 
-    showForce (ForceIn k) = show k
-    showForce ForceNever = "NULL"
+    showEvent (In k) = show k
+    showEvent Never = "NULL"
 
     showMove (pos',cdf) = [show pos', "0", show cdf]
 
@@ -157,7 +191,7 @@ showPosEntryFH (pos, (wf,wd), fb, Max fbv fbk, mvs) =
     showBool False = "'F'"
 
 writePosTableFH :: FilePath ->
-                   [(FH.Idx, (Bool,Int), Force, Max Force, [(FH.Idx,Integer)])] -> IO ()
+                   [(FH.Idx, (Bool,Int), Event, Max Event, [(FH.Idx,Integer)])] -> IO ()
 writePosTableFH file entries = withFile file WriteMode $ \h ->
     mapM_ (hPutStrLn h . showPosEntryFH) entries
 
@@ -179,13 +213,16 @@ main = do
     putStrLn $ "Initial position index: " ++ show initialIdxFH
     putStrLn $ "Reachable position index range: " ++ show reachableIdxFH
     putStrLn $ "Solution: " ++ FH.ppEval solutionFH
-    putStrLn $ "Maximum forced FoxBox: " ++ show maxForcedFoxBoxFH
+    putStrLn $ "Maximum FoxBox: " ++ show maxFoxBoxFH
     putStrLn ""
-    putStr $ "FoxBox strategy failure positions: "
-    putStrLn $ showStrategyFailFH foxBoxStrategyFailFH
-    --putStrLn ""
-    --putStrLn $ "Win probabilities against strategies of different depths:"
-    --putStrLn $ showProbDepthFH probDepthFH
+    putStr $ "Opposite position: " ++ FH.ppPlayer (fst FH.opposite) ++ " to move" ++ show (snd FH.opposite)
+    putStrLn $ "Opposite position evaluation: " ++ FH.ppEval oppositeSolutionFH
+    putStrLn $ "Opposite maximum FoxBox: " ++ show oppositeMaxFoxBoxFH
+    putStrLn ""
+    putStr $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
+    putStrLn ""
+    putStrLn $ "Win probabilities against strategies of different depths:"
+    putStrLn $ showProbDepthFH probDepthFH
     putStr $ "Creating game database in " ++ db ++ ":"
     writePosTableFH db posTableFH
     putStrLn $ " " ++ show (length posTableFH) ++ " rows"
