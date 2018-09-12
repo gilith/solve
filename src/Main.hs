@@ -97,7 +97,7 @@ initialPositionsFH :: (String,String)
 initialPositionsFH =
     case winnerFH of
       Player1 -> ("opposite","initial")
-      Player2 -> ("intiial","opposite")
+      Player2 -> ("initial","opposite")
 
 probWinFH :: Int -> ((Prob,Prob,Prob),Prob)
 probWinFH n = ((f1,f2,f3),h1)
