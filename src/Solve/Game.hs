@@ -31,7 +31,7 @@ import Solve.Util
 data Player =
     Player1
   | Player2
-  deriving (Eq,Ord,Show)
+  deriving (Eq,Ord,Show,Enum,Bounded)
 
 newtype PlayerState s = PlayerState (s,s)
 
