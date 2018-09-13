@@ -11,6 +11,7 @@ portability: portable
 module Solve.Util
 where
 
+import qualified Data.Char as Char
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Numeric (showFFloat)
@@ -85,6 +86,14 @@ transitiveClosure f = go Set.empty
     go s [] = s
     go s (x : xs) | Set.member x s = go s xs
     go s (x : xs) | otherwise = go (Set.insert x s) (f x ++ xs)
+
+-------------------------------------------------------------------------------
+-- Strings
+-------------------------------------------------------------------------------
+
+ucfirst :: String -> String
+ucfirst [] = []
+ucfirst (h : t) = Char.toUpper h : t
 
 -------------------------------------------------------------------------------
 -- Probabilities

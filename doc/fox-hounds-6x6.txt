@@ -3,10 +3,33 @@ FOX & HOUNDS
 
 Board size: 6x6
 Reachable positions: 7984
-Initial position index: 16829
 Reachable position index range: (6195,108430)
-Solution: Fox win in 21
-Maximum forced FoxBox: Max ForceNever 10
+
+Initial position: Fox to move
++------+
+|* F * |
+| * * *|
+|* * * |
+| * * *|
+|* * * |
+| H H H|
++------+
+Initial position evaluation: Fox win in 21
+Initial position maximum FoxBox: Max Never 10
+Initial position index: 16829
+
+Opposite position: Hounds to move
++------+
+|* * * |
+| * * *|
+|F * * |
+| * * *|
+|H * * |
+| * H H|
++------+
+Opposite position evaluation: Hounds win in 17
+Opposite position maximum FoxBox: Max (In 4) 1
+Opposite position index: 45017
 
 FoxBox strategy failure positions: 5
 ------------------+---------------+------------------
@@ -26,9 +49,9 @@ FoxBox strategy failure positions: 5
          |F * * | |      |F * * | |         |F * * |
          | * * *| |      | * * *| |         | * * *|
          |* * * | |      |* * * | |         |* * * |
-         | * * *| |      | * * *| |         | * * *|
-         |* * H | |      |* H H | |         |H * H |
-         | H H *| |      | H * *| |         | * H *|
+         | * * *| |      | * * *| |         | * H *|
+         |* * H | |      |* H H | |         |* * * |
+         | H H *| |      | H * *| |         | H H *|
          +------+ |      +------+ |         +------+
  Hounds win in 17 | Fox win in 17 | Hounds win in 16
 ------------------+---------------+------------------
@@ -36,9 +59,9 @@ FoxBox strategy failure positions: 5
          |* F * | |      |* F * | |         |* F * |
          | * * *| |      | * * *| |         | * * *|
          |* * * | |      |* * * | |         |* * * |
-         | * * *| |      | * * *| |         | * * *|
-         |* * H | |      |* H H | |         |H * H |
-         | H H *| |      | H * *| |         | * H *|
+         | * * *| |      | * * *| |         | * H *|
+         |* * H | |      |* H H | |         |* * * |
+         | H H *| |      | H * *| |         | H H *|
          +------+ |      +------+ |         +------+
  Hounds win in 17 | Fox win in 17 | Hounds win in 16
 ------------------+---------------+------------------
@@ -56,12 +79,45 @@ FoxBox strategy failure positions: 5
          |* * F | |      |* * F | |         |* * F |
          | * * *| |      | * * *| |         | * * *|
          |* * * | |      |* * * | |         |* * * |
-         | * * *| |      | * * *| |         | * * *|
-         |* * H | |      |* H H | |         |H * H |
-         | H H *| |      | H * *| |         | * H *|
+         | * * *| |      | * * *| |         | * H *|
+         |* * H | |      |* H H | |         |* * * |
+         | H H *| |      | H * *| |         | H H *|
          +------+ |      +------+ |         +------+
  Hounds win in 17 | Fox win in 17 | Hounds win in 16
 ------------------+---------------+------------------
+
+Win probabilities against strategies of different depths:
+----------+----------+----------+----------+----------
+ Strategy |      Fox | Fox wins | Fox wins |   Hounds
+    depth |     wins |       vs |       vs |      win
+          |       vs | StopLoss | StopLoss |       vs
+          | StopLoss | +FoxBox1 | + FoxBox | StopLoss
+          |     from |     from |     from |     from
+          | opposite | opposite | opposite |  initial
+----------+----------+----------+----------+----------
+        0 |    1.000 |    0.984 |    1.000 |    1.000
+        1 |    1.000 |    0.984 |    0.984 |    1.000
+        2 |    1.000 |    0.984 |    0.984 |    0.999
+        3 |    1.000 |    0.984 |    1.000 |    0.999
+        4 |    0.999 |    0.970 |    1.000 |    0.999
+        5 |    0.999 |    0.970 |    0.778 |    0.999
+        6 |    0.989 |    0.889 |    0.778 |    0.999
+        7 |    0.989 |    0.889 |    0.778 |    0.999
+        8 |    0.940 |    0.889 |    0.778 |    0.996
+        9 |    0.940 |    0.889 |    0.778 |    0.996
+       10 |    0.778 |    0.889 |    0.778 |    0.989
+       11 |    0.778 |    0.889 |    0.778 |    0.989
+       12 |    0.778 |    0.889 |    0.778 |    0.972
+       13 |    0.778 |    0.889 |    0.778 |    0.972
+       14 |    0.667 |    0.667 |    0.667 |    0.917
+       15 |    0.667 |    0.667 |    0.667 |    0.917
+       16 |    0.667 |    0.667 |    0.667 |    0.750
+       17 |    0.667 |    0.667 |    0.667 |    0.750
+       18 |    0.000 |    0.000 |    0.000 |    0.000
+       19 |    0.000 |    0.000 |    0.000 |    0.000
+       20 |    0.000 |    0.000 |    0.000 |    0.000
+       21 |    0.000 |    0.000 |    0.000 |    0.000
+----------+----------+----------+----------+----------
 
 Creating game database in doc/fox-hounds-6x6.sql: 7984 rows
 ___________________________________________________________________________

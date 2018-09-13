@@ -20,7 +20,7 @@ import System.FilePath ((</>),(<.>))
 import System.IO (IOMode(..),hPutStrLn,withFile)
 
 import qualified Solve.FoxHounds as FH
-import Solve.Game (Eval(..),Event(..),Max(..),Player(..),Strategy,StrategyFail)
+import Solve.Game (Eval(..),Event(..),Max(..),Moves,Player(..),Strategy,StrategyFail)
 import qualified Solve.Game as Game
 import Solve.Util
 
@@ -40,9 +40,6 @@ winnerFH =
       Win pl _ -> pl
       _ -> error "no winner"
 
-initialIdxFH :: FH.Idx
-initialIdxFH = FH.posToIdx FH.initial
-
 reachableIdxFH :: (FH.Idx,FH.Idx)
 reachableIdxFH = (a,b)
   where
@@ -50,20 +47,11 @@ reachableIdxFH = (a,b)
     b = maximum l
     l = map (FH.posToIdx . snd . fst) $ Map.toList FH.solution
 
-depthFH :: Int
+depthFH :: Moves
 depthFH =
     case solutionFH of
       Win _ n -> n
       _ -> error "no winner"
-
-maxFoxBoxFH :: Max Event
-maxFoxBoxFH = FH.evalInitial FH.maxFoxBox
-
-oppositeSolutionFH :: Eval
-oppositeSolutionFH = FH.evalOpposite FH.solution
-
-oppositeMaxFoxBoxFH :: Max Event
-oppositeMaxFoxBoxFH = FH.evalOpposite FH.maxFoxBox
 
 foxBoxStrategyFailFH :: StrategyFail FH.Pos
 foxBoxStrategyFailFH =
@@ -93,11 +81,29 @@ houndsStopLossFoxBox1FH n =
       (Game.tryStrategy (FH.stopLossStrategy Player2 n))
       (Game.tryStrategy (FH.foxBoxStrategy 1))
 
+getPositionFH :: String -> (Player,FH.Pos)
+getPositionFH "initial" = (Player1,FH.initial)
+getPositionFH "opposite" = FH.opposite
+getPositionFH _ = error "unknown position"
+
 initialPositionsFH :: (String,String)
 initialPositionsFH =
     case winnerFH of
       Player1 -> ("opposite","initial")
       Player2 -> ("initial","opposite")
+
+ppPositionFH :: String -> String
+ppPositionFH s =
+    sp ++ ": " ++ FH.ppPlayer pl ++ " to move" ++ show p ++
+    sp ++ " evaluation: " ++ FH.ppEval ev ++ "\n" ++
+    sp ++ " maximum FoxBox: " ++ show fb ++ "\n" ++
+    sp ++ " index: " ++ show idx
+  where
+    ev = Game.evalUnsafe FH.solution pl p
+    fb = Game.evalUnsafe FH.maxFoxBox pl p
+    idx = FH.posToIdx p
+    (pl,p) = getPositionFH s
+    sp = ucfirst s ++ " position"
 
 probWinFH :: Int -> ((Prob,Prob,Prob),Prob)
 probWinFH n = ((f1,f2,f3),h1)
@@ -108,12 +114,8 @@ probWinFH n = ((f1,f2,f3),h1)
 
     h1 = phw $ FH.foxStrategy n
 
-    pfw = pw Player1 (ip (fst initialPositionsFH))
-    phw = pw Player2 (ip (snd initialPositionsFH))
-
-    ip "initial" = (Player1,FH.initial)
-    ip "opposite" = FH.opposite
-    ip _ = error "unknown initial position"
+    pfw = pw Player1 (getPositionFH (fst initialPositionsFH))
+    phw = pw Player2 (getPositionFH (snd initialPositionsFH))
 
     pw spl (pl,p) adv = fst $ Game.probWinWith FH.game spl adv Map.empty pl p
 
@@ -210,14 +212,11 @@ main = do
     putStrLn ""
     putStrLn $ "Board size: " ++ dim
     putStrLn $ "Reachable positions: " ++ show reachableFH
-    putStrLn $ "Initial position index: " ++ show initialIdxFH
     putStrLn $ "Reachable position index range: " ++ show reachableIdxFH
-    putStrLn $ "Solution: " ++ FH.ppEval solutionFH
-    putStrLn $ "Maximum FoxBox: " ++ show maxFoxBoxFH
     putStrLn ""
-    putStr $ "Opposite position: " ++ FH.ppPlayer (fst FH.opposite) ++ " to move" ++ show (snd FH.opposite)
-    putStrLn $ "Opposite position evaluation: " ++ FH.ppEval oppositeSolutionFH
-    putStrLn $ "Opposite maximum FoxBox: " ++ show oppositeMaxFoxBoxFH
+    putStrLn $ ppPositionFH "initial"
+    putStrLn ""
+    putStrLn $ ppPositionFH "opposite"
     putStrLn ""
     putStr $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
     putStrLn ""
