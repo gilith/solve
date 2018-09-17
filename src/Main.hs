@@ -20,8 +20,10 @@ import System.FilePath ((</>),(<.>))
 import System.IO (IOMode(..),hPutStrLn,withFile)
 
 import qualified Solve.FoxHounds as FH
-import Solve.Game (Eval(..),Event(..),Max(..),Moves,Player(..),Strategy,StrategyFail)
+import Solve.Game (Eval(..),Event(..),Max(..),Moves,Player(..))
 import qualified Solve.Game as Game
+import Solve.Strategy (Strategy,StrategyFail)
+import qualified Solve.Strategy as Strategy
 import Solve.Util
 
 -------------------------------------------------------------------------------
@@ -56,7 +58,7 @@ depthFH =
 foxBoxStrategyFailFH :: StrategyFail FH.Pos
 foxBoxStrategyFailFH =
     FH.validateStrategy Player2
-      (Game.tryStrategy (FH.foxBoxStrategy 1))
+      (Strategy.tryStrategy (FH.foxBoxStrategy 1))
 
 showStrategyFailFH :: StrategyFail FH.Pos -> String
 showStrategyFailFH ps =
@@ -73,13 +75,13 @@ showStrategyFailFH ps =
         showTable ([] : header : concat (map rowsFail (Set.toList ps)) ++ [[]])
 
 houndsStopLossFH :: Int -> Strategy FH.Pos
-houndsStopLossFH n = Game.tryStrategy (FH.stopLossStrategy Player2 n)
+houndsStopLossFH n = Strategy.tryStrategy (FH.stopLossStrategy Player2 n)
 
 houndsStopLossFoxBox1FH :: Int -> Strategy FH.Pos
 houndsStopLossFoxBox1FH n =
-    Game.thenStrategy
-      (Game.tryStrategy (FH.stopLossStrategy Player2 n))
-      (Game.tryStrategy (FH.foxBoxStrategy 1))
+    Strategy.thenStrategy
+      (Strategy.tryStrategy (FH.stopLossStrategy Player2 n))
+      (Strategy.tryStrategy (FH.foxBoxStrategy 1))
 
 getPositionFH :: String -> (Player,FH.Pos)
 getPositionFH "initial" = (Player1,FH.initial)
@@ -117,7 +119,7 @@ probWinFH n = ((f1,f2,f3),h1)
     pfw = pw Player1 (getPositionFH (fst initialPositionsFH))
     phw = pw Player2 (getPositionFH (snd initialPositionsFH))
 
-    pw spl (pl,p) adv = fst $ Game.probWinWith FH.game spl adv Map.empty pl p
+    pw spl (pl,p) adv = fst $ Strategy.probWinWith FH.game spl adv Map.empty pl p
 
 probDepthFH :: [(Int,((Prob,Prob,Prob),Prob))]
 probDepthFH = map f [0..depthFH]

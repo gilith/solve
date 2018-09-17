@@ -121,6 +121,16 @@ boolProb False = 0.0
 showProb :: Prob -> String
 showProb p = showFFloat (Just 3) p ""
 
+uniformDist :: Int -> [Prob]
+uniformDist n = replicate n (1.0 / fromIntegral n)
+
+sumDist :: Prob -> [Prob] -> [Prob] -> [Prob]
+sumDist l = zipWith f
+  where f p q = l * p + (1 - l) * q
+
+fuzzDist :: Prob -> [Prob] -> [Prob]
+fuzzDist e p = sumDist e (uniformDist (length p)) p
+
 -------------------------------------------------------------------------------
 -- Pretty-print a table
 -------------------------------------------------------------------------------

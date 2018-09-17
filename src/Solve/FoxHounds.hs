@@ -17,8 +17,10 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Adversaries,Eval(..),Event,Force,Game,Max(..),Player(..),PlayerState(..),ProbWin,Solve,Strategy,StrategyFail,Val)
+import Solve.Game (Eval(..),Event,Force,Game,Max(..),Player(..),PlayerState(..),Solve,Val)
 import qualified Solve.Game as Game
+import Solve.Strategy (Adversaries,ProbWin,Strategy,StrategyFail)
+import qualified Solve.Strategy as Strategy
 import Solve.Util
 
 -------------------------------------------------------------------------------
@@ -233,24 +235,24 @@ maxFoxBox :: Val Pos (Max Event)
 maxFoxBox = Game.gameMax game Player1 (Game.evalUnsafe foxBox) Player1 initial
 
 stopLossStrategy :: Player -> Int -> Strategy Pos
-stopLossStrategy = Game.stopLossStrategy solution
+stopLossStrategy = Strategy.stopLossStrategy solution
 
 foxBoxStrategy :: Int -> Strategy Pos
-foxBoxStrategy = Game.forceStrategy foxBox Player2
+foxBoxStrategy = Strategy.forceStrategy foxBox Player2
 
 maxFoxBoxStrategy :: Player -> Strategy Pos
-maxFoxBoxStrategy = Game.maxStrategy . Game.evalUnsafe maxFoxBox
+maxFoxBoxStrategy = Strategy.maxStrategy . Game.evalUnsafe maxFoxBox
 
 -- Best known parameterized strategies
 
 foxStrategy :: Int -> Strategy Pos
-foxStrategy n = Game.tryStrategy (stopLossStrategy Player1 n)
+foxStrategy n = Strategy.tryStrategy (stopLossStrategy Player1 n)
 
 houndsStrategy :: Int -> Strategy Pos
 houndsStrategy n =
-    Game.thenStrategy
-      (Game.tryStrategy (stopLossStrategy Player2 n))
-      (Game.tryStrategy (foxBoxStrategy n))
+    Strategy.thenStrategy
+      (Strategy.tryStrategy (stopLossStrategy Player2 n))
+      (Strategy.tryStrategy (foxBoxStrategy n))
 
 adversaries :: Adversaries Pos
 adversaries = PlayerState (mk houndsStrategy, mk foxStrategy)
@@ -260,18 +262,21 @@ adversaries = PlayerState (mk houndsStrategy, mk foxStrategy)
 
 strategy :: Player -> Pos -> Strategy Pos
 strategy pl p =
-    Game.thenStrategy
-      (Game.sameResultStrategy e pe)
+    Strategy.thenStrategy
+      (Strategy.sameResultStrategy e pe)
       (if Game.winning Player1 e then strH else strF)
   where
     strF = maxFoxBoxStrategy pl'
-    strH = Game.bestStrategy Player2 pe
+    strH = Strategy.bestStrategy Player2 pe
     e = Game.evalUnsafe solution pl p
     pe = Game.evalUnsafe solution pl'
     pl' = Game.turn pl
 
 moveDist :: Player -> Pos -> [(Prob,Pos)]
-moveDist pl p = Game.moveDistStrategy game (strategy pl p) pl p
+moveDist pl p = zip (fuzzDist fuzz ps) ms
+  where
+    (ps,ms) = unzip $ Strategy.moveDistStrategy game (strategy pl p) pl p
+    fuzz = 0.01
 
 -------------------------------------------------------------------------------
 -- Validating strategies
@@ -279,14 +284,14 @@ moveDist pl p = Game.moveDistStrategy game (strategy pl p) pl p
 
 validateStrategy :: Player -> Strategy Pos -> StrategyFail Pos
 validateStrategy pl str =
-    Game.validateStrategy game solution pl str Player1 initial
+    Strategy.validateStrategy game solution pl str Player1 initial
 
 -------------------------------------------------------------------------------
 -- Win probability
 -------------------------------------------------------------------------------
 
 probWin :: Player -> Strategy Pos -> ProbWin Pos
-probWin pl adv = Game.probWin game pl adv Player1 initial
+probWin pl adv = Strategy.probWin game pl adv Player1 initial
 
 -------------------------------------------------------------------------------
 -- The opposite position is reachable and has a different result
