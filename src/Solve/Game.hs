@@ -140,6 +140,12 @@ move game pl p =
       Left _ -> []
       Right ps -> ps
 
+gameOver :: Game p -> Player -> p -> Bool
+gameOver game pl p =
+    case game pl p of
+      Left _ -> True
+      Right _ -> False
+
 -------------------------------------------------------------------------------
 -- Depth-first search
 -------------------------------------------------------------------------------

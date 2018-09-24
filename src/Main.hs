@@ -83,9 +83,33 @@ houndsStopLossFoxBox1FH n =
       (Strategy.tryStrategy (FH.stopLossStrategy Player2 n))
       (Strategy.tryStrategy (FH.foxBoxStrategy 1))
 
+houndsVictoryFH :: (Player,FH.Pos)
+houndsVictoryFH = FH.typical f
+  where f pl p = Game.evalUnsafe FH.solution pl p == Win Player2 0
+
+foxEscapedFH :: (Player,FH.Pos)
+foxEscapedFH = FH.typical (const FH.foxEscaped)
+
+foxVictoryWithoutEscapeFH :: (Player,FH.Pos)
+foxVictoryWithoutEscapeFH = FH.typical f
+  where f pl p = Game.evalUnsafe FH.solution pl p == Win Player1 0 &&
+                 not (FH.foxEscaped p)
+
+typicalFoxBoxFH :: (Player,FH.Pos)
+typicalFoxBoxFH = FH.typical f
+  where f pl p = pl == Player1 &&
+                 FH.isFoxBox p &&
+                 case Game.evalUnsafe FH.maxFoxBox pl p of
+                   Max (In n) _ -> n > 0
+                   Max Never _ -> True
+
 getPositionFH :: String -> (Player,FH.Pos)
 getPositionFH "initial" = (Player1,FH.initial)
 getPositionFH "opposite" = FH.opposite
+getPositionFH "hounds victory" = houndsVictoryFH
+getPositionFH "fox escaped" = foxEscapedFH
+getPositionFH "fox victory without escape" = foxVictoryWithoutEscapeFH
+getPositionFH "typical FoxBox" = typicalFoxBoxFH
 getPositionFH _ = error "unknown position"
 
 initialPositionsFH :: (String,String)
@@ -219,6 +243,14 @@ main = do
     putStrLn $ ppPositionFH "initial"
     putStrLn ""
     putStrLn $ ppPositionFH "opposite"
+    putStrLn ""
+    putStrLn $ ppPositionFH "hounds victory"
+    putStrLn ""
+    putStrLn $ ppPositionFH "fox escaped"
+    putStrLn ""
+    putStrLn $ ppPositionFH "fox victory without escape"
+    putStrLn ""
+    putStrLn $ ppPositionFH "typical FoxBox"
     putStrLn ""
     putStr $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
     putStrLn ""

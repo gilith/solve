@@ -21,6 +21,10 @@ import Solve.Util
 
 -------------------------------------------------------------------------------
 -- Depth-first search
+--
+-- The result type DfsResult n v is a map from the node type n to a value
+-- type v, and the DFS function is strict in v to avoid building up
+-- thunks spanning the whole graph.
 -------------------------------------------------------------------------------
 
 type DfsPre n a v = n -> Either v [(a,n)]
@@ -41,8 +45,9 @@ dfsWith pre post = go Set.empty
               (v,db') = evalNode br db n (pre n)
 
     evalNode _ db _ (Left v) = (v,db)
-    evalNode br db n (Right ans) = (post n nvs, db')
+    evalNode br db n (Right ans) = v `seq` (v,db')
       where
+        v = post n nvs
         (nvs,db') = mapLR (evalChild (Set.insert n br)) db ans
 
     evalChild br db (a,n) | Set.member n br = (((a,n),Nothing),db)

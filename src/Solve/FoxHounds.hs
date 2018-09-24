@@ -196,6 +196,9 @@ game pl p =
   where
     ps = move pl p
 
+gameOver :: Player -> Pos -> Bool
+gameOver = Game.gameOver game
+
 evalInitial :: Val Pos v -> v
 evalInitial db = Game.evalUnsafe db Player1 initial
 
@@ -308,6 +311,13 @@ opposite =
 
 evalOpposite :: Val Pos v -> v
 evalOpposite db = uncurry (Game.evalUnsafe db) opposite
+
+-------------------------------------------------------------------------------
+-- Typical reachable positions satisfying some predicate
+-------------------------------------------------------------------------------
+
+typical :: (Player -> Pos -> Bool) -> (Player,Pos)
+typical f = middle $ filter (uncurry f) bfsInitial
 
 -------------------------------------------------------------------------------
 -- Pretty printing
