@@ -60,7 +60,7 @@ nonClassicalFH :: [(Player,FH.Pos,Eval,Eval)]
 nonClassicalFH = mapMaybe diff $ Map.toList FH.solution
   where
     diff ((pl,p),ev) =
-        if Game.sameResult ev ev' then Nothing else Just (pl,p,ev',ev)
+        if Game.sameResult ev ev' then Nothing else Just (pl,p,ev,ev')
       where
         ev' = Game.evalUnsafe solution pl p
 
@@ -76,9 +76,9 @@ showNonClassicalFH :: [(Player,FH.Pos,Eval,Eval)] -> String
 showNonClassicalFH ds = show (length ds) ++ concatMap showDiff ds
   where
     showDiff (pl,p,e,e') =
-        "\n" ++ FH.ppPlayer pl ++ " to move" ++ show p ++
-        "Classic evaluation: " ++ FH.ppEval e ++ "\n" ++
-        "Our evaluation: " ++ FH.ppEval e' ++ "\n"
+        "\n\n" ++ FH.ppPlayer pl ++ " to move" ++ show p ++
+        "Position evaluation: " ++ FH.ppEval e ++ "\n" ++
+        "Classical position evaluation: " ++ FH.ppEval e'
 
 foxBoxStrategyFailFH :: StrategyFail FH.Pos
 foxBoxStrategyFailFH =
@@ -277,7 +277,7 @@ main = do
     putStrLn ""
     putStrLn $ ppPositionFH "typical FoxBox"
     putStrLn ""
-    putStr $ "Non-classical positions: " ++ showNonClassicalFH nonClassicalFH
+    putStrLn $ "Non-classical positions: " ++ showNonClassicalFH nonClassicalFH
     putStrLn ""
     putStr $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
     putStrLn ""

@@ -177,7 +177,10 @@ move Player2 p = houndsMove p
 -------------------------------------------------------------------------------
 
 foxEscaped :: Pos -> Bool
-foxEscaped p = Set.notMember (fox p) (houndsReachable (hounds p))
+foxEscaped p = safe f -- && any safe (foxAdjacent f)
+  where
+    f = fox p
+    safe = flip Set.notMember $ houndsReachable (hounds p)
 
 won :: Player -> Pos -> Maybe Player
 won pl p | null (move pl p) = Just (Game.turn pl)
