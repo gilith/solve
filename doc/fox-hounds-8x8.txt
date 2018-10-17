@@ -35,6 +35,66 @@ Opposite position evaluation: Fox win in 11
 Opposite position maximum FoxBox: Max Never 0
 Opposite position index: 7205823
 
+Hounds victory position: Fox to move
++--------+
+|F * * * |
+| H * * *|
+|* * * H |
+| * * * *|
+|* * H * |
+| H * * *|
+|* * * * |
+| * * * *|
++--------+
+Hounds victory position evaluation: Hounds win in 0
+Hounds victory position maximum FoxBox: Max (In 0) 0
+Hounds victory position index: 1191508
+
+Fox escaped position: Hounds to move
++--------+
+|* * * H |
+| H * * *|
+|* * * * |
+| * * * *|
+|* * * * |
+| * * * *|
+|F H * H |
+| * * * *|
++--------+
+Fox escaped position evaluation: Fox win in 0
+Fox escaped position maximum FoxBox: Max Never 0
+Fox escaped position index: 26317627
+
+Fox victory without escape position: Hounds to move
++--------+
+|H * H H |
+| * * * *|
+|* * * * |
+| * * * *|
+|* * * F |
+| * * * H|
+|* * * * |
+| * * * *|
++--------+
+Fox victory without escape position evaluation: Fox win in 0
+Fox victory without escape position maximum FoxBox: Max Never 0
+Fox victory without escape position index: 20973687
+
+Typical FoxBox position: Fox to move
++--------+
+|* * * * |
+| * * * *|
+|* * * * |
+| * * * *|
+|* * F * |
+| H H H H|
+|* * * * |
+| * * * *|
++--------+
+Typical FoxBox position evaluation: Hounds win in 28
+Typical FoxBox position maximum FoxBox: Max (In 6) 4
+Typical FoxBox position index: 20600535
+
 FoxBox strategy failure positions: 36
 -----------------+---------------+-----------------
         Position | Strategy move |     Better move

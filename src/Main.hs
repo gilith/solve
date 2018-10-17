@@ -15,6 +15,7 @@ where
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Data.Maybe (mapMaybe)
 --import qualified System.Environment as Environment
 import System.FilePath ((</>),(<.>))
 import System.IO (IOMode(..),hPutStrLn,withFile)
@@ -42,6 +43,12 @@ winnerFH =
       Win pl _ -> pl
       _ -> error "no winner"
 
+depthFH :: Moves
+depthFH =
+    case solutionFH of
+      Win _ n -> n
+      _ -> error "no winner"
+
 reachableIdxFH :: (FH.Idx,FH.Idx)
 reachableIdxFH = (a,b)
   where
@@ -49,11 +56,29 @@ reachableIdxFH = (a,b)
     b = maximum l
     l = map (FH.posToIdx . snd . fst) $ Map.toList FH.solution
 
-depthFH :: Moves
-depthFH =
-    case solutionFH of
-      Win _ n -> n
-      _ -> error "no winner"
+nonClassicalFH :: [(Player,FH.Pos,Eval,Eval)]
+nonClassicalFH = mapMaybe diff $ Map.toList FH.solution
+  where
+    diff ((pl,p),ev) =
+        if Game.sameResult ev ev' then Nothing else Just (pl,p,ev',ev)
+      where
+        ev' = Game.evalUnsafe solution pl p
+
+    solution = Game.solve game Player1 FH.initial
+
+    game pl p =
+        if null ps then Left (Game.winEval (Game.turn pl))
+        else Right ps
+      where
+        ps = FH.move pl p
+
+showNonClassicalFH :: [(Player,FH.Pos,Eval,Eval)] -> String
+showNonClassicalFH ds = show (length ds) ++ concatMap showDiff ds
+  where
+    showDiff (pl,p,e,e') =
+        "\n" ++ FH.ppPlayer pl ++ " to move" ++ show p ++
+        "Classic evaluation: " ++ FH.ppEval e ++ "\n" ++
+        "Our evaluation: " ++ FH.ppEval e' ++ "\n"
 
 foxBoxStrategyFailFH :: StrategyFail FH.Pos
 foxBoxStrategyFailFH =
@@ -251,6 +276,8 @@ main = do
     putStrLn $ ppPositionFH "fox victory without escape"
     putStrLn ""
     putStrLn $ ppPositionFH "typical FoxBox"
+    putStrLn ""
+    putStr $ "Non-classical positions: " ++ showNonClassicalFH nonClassicalFH
     putStrLn ""
     putStr $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
     putStrLn ""
