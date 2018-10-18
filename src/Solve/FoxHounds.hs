@@ -177,7 +177,7 @@ move Player2 p = houndsMove p
 -------------------------------------------------------------------------------
 
 foxEscaped :: Pos -> Bool
-foxEscaped p = safe f -- && any safe (foxAdjacent f)
+foxEscaped p = safe f && any safe (foxAdjacent f)
   where
     f = fox p
     safe = flip Set.notMember $ houndsReachable (hounds p)
