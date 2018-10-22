@@ -56,8 +56,8 @@ reachableIdxFH = (a,b)
     b = maximum l
     l = map (FH.posToIdx . snd . fst) $ Map.toList FH.solution
 
-nonClassicalFH :: [(Player,FH.Pos,Eval,Eval)]
-nonClassicalFH = mapMaybe diff $ Map.toList FH.solution
+incorrectPositionEvaluationsFH :: [(Player,FH.Pos,Eval,Eval)]
+incorrectPositionEvaluationsFH = mapMaybe diff $ Map.toList FH.solution
   where
     diff ((pl,p),ev) =
         if Game.sameResult ev ev' then Nothing else Just (pl,p,ev,ev')
@@ -72,13 +72,14 @@ nonClassicalFH = mapMaybe diff $ Map.toList FH.solution
       where
         ps = FH.move pl p
 
-showNonClassicalFH :: [(Player,FH.Pos,Eval,Eval)] -> String
-showNonClassicalFH ds = show (length ds) ++ concatMap showDiff ds
+showIncorrectPositionEvaluationsFH :: [(Player,FH.Pos,Eval,Eval)] -> String
+showIncorrectPositionEvaluationsFH ds =
+    show (length ds) ++ concatMap showDiff ds
   where
     showDiff (pl,p,e,e') =
         "\n\n" ++ FH.ppPlayer pl ++ " to move" ++ show p ++
-        "Position evaluation: " ++ FH.ppEval e ++ "\n" ++
-        "Classical position evaluation: " ++ FH.ppEval e'
+        "Incorrect position evaluation: " ++ FH.ppEval e ++ "\n" ++
+        "Correct position evaluation: " ++ FH.ppEval e'
 
 foxBoxStrategyFailFH :: StrategyFail FH.Pos
 foxBoxStrategyFailFH =
@@ -277,7 +278,7 @@ main = do
     putStrLn ""
     putStrLn $ ppPositionFH "typical FoxBox"
     putStrLn ""
-    putStrLn $ "Non-classical positions: " ++ showNonClassicalFH nonClassicalFH
+    putStrLn $ "Incorrect position evaluations: " ++ showIncorrectPositionEvaluationsFH incorrectPositionEvaluationsFH
     putStrLn ""
     putStr $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
     putStrLn ""
