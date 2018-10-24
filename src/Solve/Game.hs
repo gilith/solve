@@ -208,6 +208,28 @@ reachable :: Solve p -> Int
 reachable = Map.size
 
 -------------------------------------------------------------------------------
+-- The number of possible games
+-------------------------------------------------------------------------------
+
+type Games p = Val p Integer
+
+gamesWith :: Ord p => Game p -> Games p -> Player -> p -> (Integer, Games p)
+gamesWith game = dfsWith pre post
+  where
+    pre pl p =
+        case game pl p of
+          Left _ -> Left 1
+          Right ps -> Right (map ((,) ()) ps)
+
+    post _ _ = sum . map (acyclic . snd)
+
+    acyclic (Just n) = n
+    acyclic Nothing = error "loopy game"
+
+games :: Ord p => Game p -> Player -> p -> Games p
+games game pl p = snd $ gamesWith game Map.empty pl p
+
+-------------------------------------------------------------------------------
 -- Forcing positions that satisfy a predicate
 -------------------------------------------------------------------------------
 

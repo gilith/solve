@@ -23,13 +23,30 @@ import System.IO (IOMode(..),hPutStrLn,withFile)
 import qualified Solve.FoxHounds as FH
 import Solve.Game (Eval(..),Event(..),Max(..),Moves,Player(..))
 import qualified Solve.Game as Game
+import qualified Solve.NoughtsCrosses as NC
 import Solve.Strategy (Strategy,StrategyFail)
 import qualified Solve.Strategy as Strategy
 import Solve.Util
 
 -------------------------------------------------------------------------------
+-- Noughts & Crosses
+-------------------------------------------------------------------------------
+
+dimNC :: String
+dimNC = let n = show NC.boardSize in n ++ "x" ++ n
+
+reachableNC :: Int
+reachableNC = Game.reachable NC.solution
+
+-------------------------------------------------------------------------------
 -- Fox & Hounds
 -------------------------------------------------------------------------------
+
+dimFH :: String
+dimFH = let n = show FH.boardSize in n ++ "x" ++ n
+
+dbFH :: FilePath
+dbFH = "doc" </> ("fox-hounds-" ++ dimFH) <.> "sql"
 
 reachableFH :: Int
 reachableFH = Game.reachable FH.solution
@@ -260,11 +277,18 @@ main :: IO ()
 main = do
     --args <- Environment.getArgs
     ___
+    putStrLn "NOUGHTS & CROSSES"
+    putStrLn ""
+    putStrLn $ "Board size: " ++ dimNC
+    putStrLn $ "Reachable positions: " ++ show reachableNC
+    putStrLn $ "Possible games: " ++ ppGames NC.gamesInitial
+    ___
     putStrLn "FOX & HOUNDS"
     putStrLn ""
-    putStrLn $ "Board size: " ++ dim
+    putStrLn $ "Board size: " ++ dimFH
     putStrLn $ "Reachable positions: " ++ show reachableFH
     putStrLn $ "Reachable position index range: " ++ show reachableIdxFH
+    putStrLn $ "Possible games: " ++ ppGames FH.gamesInitial
     putStrLn ""
     putStrLn $ ppPositionFH "initial"
     putStrLn ""
@@ -284,12 +308,11 @@ main = do
     putStrLn ""
     putStrLn $ "Win probabilities against strategies of different depths:"
     putStrLn $ showProbDepthFH probDepthFH
-    putStr $ "Creating game database in " ++ db ++ ":"
-    writePosTableFH db posTableFH
+    putStr $ "Creating game database in " ++ dbFH ++ ":"
+    writePosTableFH dbFH posTableFH
     putStrLn $ " " ++ show (length posTableFH) ++ " rows"
     ___
     return ()
   where
-    dim = let n = show FH.boardSize in n ++ "x" ++ n
-    db = "doc" </> ("fox-hounds-" ++ dim) <.> "sql"
+    ppGames n = let s = show n in s ++ " (~10^" ++ show (length s - 1) ++ ")"
     ___ = putStrLn $ replicate lineLength '_'

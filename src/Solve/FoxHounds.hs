@@ -17,7 +17,7 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Eval(..),Event,Force,Game,Max(..),Player(..),PlayerState(..),Solve,Val)
+import Solve.Game (Eval(..),Event,Force,Game,Games,Max(..),Player(..),PlayerState(..),Solve,Val)
 import qualified Solve.Game as Game
 import Solve.Strategy (Adversaries,ProbWin,Strategy,StrategyFail)
 import qualified Solve.Strategy as Strategy
@@ -229,6 +229,16 @@ winDepth pl p =
     case Game.evalUnsafe solution pl p of
       Win _ d -> d
       Draw -> error "draws are not possible in this game"
+
+-------------------------------------------------------------------------------
+-- The number of possible games
+-------------------------------------------------------------------------------
+
+games :: Games Pos
+games = Game.games game Player1 initial
+
+gamesInitial :: Integer
+gamesInitial = evalInitial games
 
 -------------------------------------------------------------------------------
 -- Strategies
