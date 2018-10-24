@@ -1,0 +1,113 @@
+___________________________________________________________________________
+FOX & HOUNDS
+
+Board size: 10x10
+Reachable positions: 69575678
+Reachable position index range: (319007705,15854721998)
+Possible games: 70297467696717584052559348316424667585035088022072598144 (~10^55)
+
+Initial position: Fox to move
++----------+
+|* * F * * |
+| * * * * *|
+|* * * * * |
+| * * * * *|
+|* * * * * |
+| * * * * *|
+|* * * * * |
+| * * * * *|
+|* * * * * |
+| H H H H H|
++----------+
+Initial position evaluation: Hounds win in 72
+Initial position maximum FoxBox: Max (In 10) 24
+Initial position index: 1224619949
+
+Opposite position: Fox to move
++----------+
+|* * * * * |
+| * * * * *|
+|* F * * * |
+| * * * * *|
+|* * * * * |
+| * * * * *|
+|* * * * * |
+| * * * H *|
+|* * * * * |
+| H H * H H|
++----------+
+Opposite position evaluation: Fox win in 43
+Opposite position maximum FoxBox: Max Never 0
+Opposite position index: 3993242449
+
+Hounds victory position: Fox to move
++----------+
+|* * * * H |
+| * * * H *|
+|* * * * * |
+| * * * * *|
+|H * * * * |
+| * * * * *|
+|* * * * * |
+| * * * * *|
+|* * * * H |
+| * * H * F|
++----------+
+Hounds victory position evaluation: Hounds win in 0
+Hounds victory position maximum FoxBox: Max Never 0
+Hounds victory position index: 15651052247
+
+Fox escaped position: Fox to move
++----------+
+|* * * * H |
+| * * * * *|
+|* * * * * |
+| * * * * *|
+|H H * * F |
+| * * * * *|
+|* * H * * |
+| H * * * *|
+|* * * * * |
+| * * * * *|
++----------+
+Fox escaped position evaluation: Fox win in 0
+Fox escaped position maximum FoxBox: Max Never 0
+Fox escaped position index: 7840054135
+
+Fox victory without escape position: Hounds to move
++----------+
+|H H * * H |
+| H * * * *|
+|* * * * * |
+| * * * * *|
+|* * * * F |
+| * * * * H|
+|* * * * * |
+| * * * * *|
+|* * * * * |
+| * * * * *|
++----------+
+Fox victory without escape position evaluation: Fox win in 0
+Fox victory without escape position maximum FoxBox: Max Never 0
+Fox victory without escape position index: 7812635279
+
+Typical FoxBox position: Fox to move
++----------+
+|* * * * * |
+| * * * * *|
+|* * * * * |
+| * * * * *|
+|* * * F * |
+| * * * * *|
+|* H H H H |
+| H * * * *|
+|* * * * * |
+| * * * * *|
++----------+
+Typical FoxBox position evaluation: Hounds win in 44
+Typical FoxBox position maximum FoxBox: Max (In 8) 20
+Typical FoxBox position index: 7697834235
+
+Incorrect position evaluations: 0
+
+___________________________________________________________________________

@@ -4,6 +4,7 @@ FOX & HOUNDS
 Board size: 8x8
 Reachable positions: 709868
 Reachable position index range: (1083496,34265854)
+Possible games: 360552037329667882019232833884 (~10^29)
 
 Initial position: Fox to move
 +--------+
