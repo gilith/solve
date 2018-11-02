@@ -122,6 +122,9 @@ isZeroProb p = p <= 0.0
 nonZeroProb :: Prob -> Bool
 nonZeroProb = not . isZeroProb
 
+isOneProb :: Prob -> Bool
+isOneProb p = p >= 1.0
+
 boolProb :: Bool -> Prob
 boolProb True = 1.0
 boolProb False = 0.0

@@ -17,6 +17,7 @@ import qualified Data.Map as Map
 import Data.Maybe (fromMaybe,isJust,mapMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.Tuple (swap)
 
 import Solve.Game (Eval(..),Event(..),Force,Game,Moves,Player(..),PlayerState(..),Solve,Val)
 import qualified Solve.Game as Game
@@ -30,31 +31,31 @@ import Solve.Util
 type Weight = Double
 
 -- Strategies may filter out positions and change weights
-type Strategy p = [(Weight,p)] -> [(Weight,p)]
+type Strategy p = [(p,Weight)] -> [(p,Weight)]
 
-moveDistStrategy :: Eq p => Game p -> Strategy p -> Player -> p -> [(Prob,p)]
+moveDistStrategy :: Eq p => Game p -> Strategy p -> Player -> p -> [(p,Prob)]
 moveDistStrategy game str pl p =
     case game pl p of
       Left _ -> []
       Right ps -> distStrategy str ps
 
-distStrategy :: Eq p => Strategy p -> [p] -> [(Prob,p)]
+distStrategy :: Eq p => Strategy p -> [p] -> [(p,Prob)]
 distStrategy str ps = map pdf ps
   where
-    pdf p = case filter ((== p) . snd) pps of
-              [] -> (0.0,p)
+    pdf p = case filter ((== p) . fst) pps of
+              [] -> (p,0.0)
               pp : _ -> pp
-    (ws,ps') = unzip $ applyStrategy str ps
-    pps = zip (normalize ws) ps'
+    (ps',ws) = unzip $ applyStrategy str ps
+    pps = zip ps' (normalize ws)
 
-applyStrategy :: Strategy p -> [p] -> [(Weight,p)]
+applyStrategy :: Strategy p -> [p] -> [(p,Weight)]
 applyStrategy str ps =
-    case str $ map ((,) 1.0) ps of
+    case str $ map (flip (,) 1.0) ps of
       [] -> error "strategy pruned away all moves"
-      wps -> wps
+      pws -> pws
 
-weightlessStrategy :: [p] -> [(Weight,p)]
-weightlessStrategy = map ((,) undefined)
+weightlessStrategy :: [p] -> [(p,Weight)]
+weightlessStrategy = map (flip (,) undefined)
 
 -------------------------------------------------------------------------------
 -- Strategy combinators
@@ -70,31 +71,34 @@ thenStrategy :: Strategy p -> Strategy p -> Strategy p
 thenStrategy str1 str2 = str2 . str1
 
 orelseStrategy :: Strategy p -> Strategy p -> Strategy p
-orelseStrategy str1 str2 wps =
-    case str1 wps of
-      [] -> str2 wps
-      wps' -> wps'
+orelseStrategy str1 str2 pws =
+    case str1 pws of
+      [] -> str2 pws
+      pws' -> pws'
 
 tryStrategy :: Strategy p -> Strategy p
 tryStrategy = flip orelseStrategy idStrategy
 
 filterStrategy :: (p -> Bool) -> Strategy p
-filterStrategy f = filter (f . snd)
-
-sameResultStrategy :: Eval -> (p -> Eval) -> Strategy p
-sameResultStrategy e pe = filterStrategy (Game.sameResult e . pe)
+filterStrategy f = filter (f . fst)
 
 maxStrategy :: Ord v => (p -> v) -> Strategy p
 maxStrategy _ [] = []
 maxStrategy pv ps = mapMaybe f $ zip ps vs
   where
     f (p,w) = if w == v then Just p else Nothing
-    vs = map (pv . snd) ps
+    vs = map (pv . fst) ps
     v = maximum vs
 
 bestStrategy :: Player -> (p -> Eval) -> Strategy p
 bestStrategy Player1 pe = maxStrategy pe
 bestStrategy Player2 pe = maxStrategy (Game.turnEval . pe)
+
+sameResultStrategy :: Player -> (p -> Eval) -> Strategy p
+sameResultStrategy pl pe = bestStrategy pl (squash . pe)
+  where
+    squash (Win wpl _) = Win wpl 0
+    squash Draw = Draw
 
 stopLossStrategy :: Ord p => Solve p -> Player -> Moves -> Strategy p
 stopLossStrategy sol pl n = filterStrategy f
@@ -107,11 +111,22 @@ forceStrategy :: Ord p => Force p -> Player -> Moves -> Strategy p
 forceStrategy frc pl n = filterStrategy f
   where f = (>) (In n) . Game.evalUnsafe frc (Game.turn pl)
 
+mixedStrategy :: Ord p => Prob -> Strategy p -> Strategy p -> Strategy p
+mixedStrategy p str1 str2 pws =
+    if isZeroProb p then str2 pws
+    else if isZeroProb q then str1 pws
+    else Map.toList $ Map.unionWith (+) pws1 pws2
+  where
+    pws1 = Map.fromList $ map (scale p) $ str1 pws
+    pws2 = Map.fromList $ map (scale q) $ str2 pws
+    scale x (a,w) = (a, x * w)
+    q = 1.0 - p
+
 -------------------------------------------------------------------------------
 -- Validating strategies
 -------------------------------------------------------------------------------
 
-type StrategyFail p = Set ((Eval,p),(Eval,p),(Eval,p))
+type StrategyFail p = Set ((p,Eval),(p,Eval),(p,Eval))
 
 validateStrategy :: Ord p => Game p -> Solve p -> Player -> Strategy p -> Player -> p -> StrategyFail p
 validateStrategy game sol spl str = \ipl ->
@@ -120,11 +135,11 @@ validateStrategy game sol spl str = \ipl ->
     pre pl p =
         case game pl p of
           Left _ -> Left Set.empty
-          Right ps -> Right (strategize pl ps)
+          Right ps -> Right (map swap $ strategize pl ps)
 
     post pl p pfs =
         if pl /= spl then fs
-        else if Game.betterResult pl (fst z) (fst n) then fs'
+        else if Game.betterResult pl (snd z) (snd n) then fs'
         else fs
       where
         fs = Set.unions (mapMaybe snd pfs)
@@ -134,10 +149,10 @@ validateStrategy game sol spl str = \ipl ->
 
     strategize pl = if pl == spl then applyStrategy str else weightlessStrategy
 
-    bestStr = maximumBy (Game.compareEval spl `on` fst) .
+    bestStr = maximumBy (Game.compareEval spl `on` snd) .
               map (evalSol (Game.turn spl))
 
-    evalSol pl p = (Game.evalUnsafe sol pl p, p)
+    evalSol pl p = (p, Game.evalUnsafe sol pl p)
 
 -------------------------------------------------------------------------------
 -- Compute probability of win
@@ -154,7 +169,7 @@ probWinWith game wpl adv = Game.dfsWith pre post
     pre pl p =
         case game pl p of
           Left e -> Left (boolProb (Game.winning wpl e))
-          Right ps -> Right (strategize pl ps)
+          Right ps -> Right (map swap $ strategize pl ps)
 
     post _ _ [] = error "no moves"
     post pl _ wpps =

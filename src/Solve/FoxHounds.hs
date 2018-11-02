@@ -261,38 +261,37 @@ maxFoxBoxStrategy = Strategy.maxStrategy . Game.evalUnsafe maxFoxBox
 
 -- Best known parameterized strategies
 
-foxStrategy :: Int -> Strategy Pos
-foxStrategy n = Strategy.tryStrategy (stopLossStrategy Player1 n)
+foxStrategyN :: Int -> Strategy Pos
+foxStrategyN n = Strategy.tryStrategy (stopLossStrategy Player1 n)
 
-houndsStrategy :: Int -> Strategy Pos
-houndsStrategy n =
+houndsStrategyN :: Int -> Strategy Pos
+houndsStrategyN n =
     Strategy.thenStrategy
       (Strategy.tryStrategy (stopLossStrategy Player2 n))
       (Strategy.tryStrategy (foxBoxStrategy n))
 
 adversaries :: Adversaries Pos
-adversaries = PlayerState (mk houndsStrategy, mk foxStrategy)
+adversaries = PlayerState (mk houndsStrategyN, mk foxStrategyN)
   where mk sf = map (flip (,) Map.empty . sf) [0..]
 
 -- Web game strategy
 
-strategy :: Player -> Pos -> Strategy Pos
-strategy pl p =
-    Strategy.thenStrategy
-      (Strategy.sameResultStrategy e pe)
-      (if Game.winning Player1 e then strH else strF)
+strategy :: Prob -> Player -> Strategy Pos
+strategy fuzz pl =
+    Strategy.mixedStrategy fuzz
+      Strategy.idStrategy
+      (Strategy.thenStrategy (Strategy.sameResultStrategy pl pe) str)
   where
-    strF = maxFoxBoxStrategy pl'
-    strH = Strategy.bestStrategy Player2 pe
-    e = Game.evalUnsafe solution pl p
+    str [] = []
+    str pws =
+        (if Game.winning Player1 (pe $ fst $ head pws)
+         then Strategy.bestStrategy Player2 pe
+         else maxFoxBoxStrategy pl') pws
     pe = Game.evalUnsafe solution pl'
     pl' = Game.turn pl
 
-moveDist :: Player -> Pos -> [(Prob,Pos)]
-moveDist pl p = zip (fuzzDist fuzz ps) ms
-  where
-    (ps,ms) = unzip $ Strategy.moveDistStrategy game (strategy pl p) pl p
-    fuzz = 0.01
+moveDist :: Prob -> Player -> Pos -> [(Pos,Prob)]
+moveDist fuzz pl p = Strategy.moveDistStrategy game (strategy fuzz pl) pl p
 
 -------------------------------------------------------------------------------
 -- Validating strategies

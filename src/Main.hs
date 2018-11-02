@@ -108,7 +108,7 @@ showStrategyFailFH ps =
     show n ++ (if n == 0 then "" else "\n" ++ tableFails)
   where
     n = Set.size ps
-    showPos (e,p) = tail (show p) ++ FH.ppEval e
+    showPos (p,e) = tail (show p) ++ FH.ppEval e
     rowsFail (a,b,c) =
         [] : zipWith3 tripleton (linesPos a) (linesPos b) (linesPos c)
       where
@@ -179,9 +179,9 @@ probWinFH n = ((f1,f2,f3),h1)
   where
     f1 = pfw $ houndsStopLossFH n
     f2 = pfw $ houndsStopLossFoxBox1FH n
-    f3 = pfw $ FH.houndsStrategy n
+    f3 = pfw $ FH.houndsStrategyN n
 
-    h1 = phw $ FH.foxStrategy n
+    h1 = phw $ FH.foxStrategyN n
 
     pfw = pw Player1 (getPositionFH (fst initialPositionsFH))
     phw = pw Player2 (getPositionFH (snd initialPositionsFH))
@@ -211,6 +211,53 @@ showProbDepthFH ps =
     row (n,((f1,f2,f3),h1)) =
         [show n, showProb f1, showProb f2, showProb f3, showProb h1]
 
+fuzzTableFH :: (Prob,[(Prob,(Prob,Prob))])
+fuzzTableFH = binary [] (0.0, entry 0.0) (1.0, entry 1.0) []
+  where
+    threshold = 0.001
+    target = 0.5
+
+    binary ls (lf,lp) (uf,up) us =
+        if uf - lf < threshold then
+          (lf, reverse ls ++ [(lf,lp),(uf,up)] ++ us)
+        else if loser p < target then
+          binary ((lf,lp) : ls) (f,p) (uf,up) us
+        else
+          binary ls (lf,lp) (f,p) ((uf,up) : us)
+      where
+         f = (lf + uf) / 2.0
+         p = entry f
+         loser = case winnerFH of Player1 -> snd ; Player2 -> fst
+
+    entry fuzz = (probFox,probHounds)
+      where
+        probFox = prob fuzz Player1 (getPositionFH (fst initialPositionsFH))
+        probHounds = prob fuzz Player2 (getPositionFH (snd initialPositionsFH))
+
+    prob fuzz spl (pl,p) =
+        fst $ Strategy.probWinWith FH.game spl adv Map.empty pl p
+      where
+        adv = FH.strategy fuzz (Game.turn spl)
+
+fuzzFH :: Prob
+fuzzFH = fst fuzzTableFH
+
+showFuzzTableFH :: (Prob,[(Prob,(Prob,Prob))]) -> String
+showFuzzTableFH (fuzz,rows) =
+    showProb fuzz ++ "\n" ++
+    showTable
+      ([] :
+       ["Fuzz", "Fox", "Hounds"] :
+       ["factor", "wins", "win"] :
+       ["", "from", "from"] :
+       ["", ifp, ihp] :
+       [] :
+       map row rows ++
+       [[]])
+  where
+    (ifp,ihp) = initialPositionsFH
+    row (f,(pf,ph)) = [showProb f, showProb pf, showProb ph]
+
 maxIntCdfFH :: Integer
 maxIntCdfFH = 100000
 
@@ -221,12 +268,12 @@ posEntryFH (pl,p) = (FH.posToIdx p, w, fb, fbm, moves mvs)
     w = (FH.winningForFox pl p, FH.winDepth pl p)
     fb = Game.evalUnsafe FH.foxBox pl p
     fbm = Game.evalUnsafe FH.maxFoxBox pl p
-    mvs = FH.moveDist pl p
+    mvs = FH.moveDist fuzzFH pl p
 
     moves = fst . mapLR cdf 0.0 . map snd . List.sort . map posIdx
       where
         cdf s (q,pr) = let s' = s + pr in ((q, round (s' * m)), s')
-        posIdx (pr,q) = (FH.coordToSquare (moved q), (FH.posToIdx q, pr))
+        posIdx (q,pr) = (FH.coordToSquare (moved q), (FH.posToIdx q, pr))
         moved = Set.findMin . Set.difference (pieces p) . pieces
         pieces q = Set.insert (FH.fox q) (FH.hounds q)
         m = fromInteger maxIntCdfFH
@@ -308,6 +355,9 @@ main = do
     putStrLn ""
     putStrLn $ "Win probabilities against strategies of different depths:"
     putStrLn $ showProbDepthFH probDepthFH
+    putStrLn ""
+    putStr $ "Fairest fuzz factor: "
+    putStrLn $ showFuzzTableFH fuzzTableFH
     putStr $ "Creating game database in " ++ dbFH ++ ":"
     writePosTableFH dbFH posTableFH
     putStrLn $ " " ++ show (length posTableFH) ++ " rows"
