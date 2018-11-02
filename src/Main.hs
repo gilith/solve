@@ -17,6 +17,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe (mapMaybe)
 --import qualified System.Environment as Environment
+import Numeric (showFFloat)
 import System.FilePath ((</>),(<.>))
 import System.IO (IOMode(..),hPutStrLn,withFile)
 
@@ -97,6 +98,23 @@ showIncorrectPositionEvaluationsFH ds =
         "\n\n" ++ FH.ppPlayer pl ++ " to move" ++ show p ++
         "Incorrect position evaluation: " ++ FH.ppEval e ++ "\n" ++
         "Correct position evaluation: " ++ FH.ppEval e'
+
+infiniteMaxFoxBoxFH :: [(Player,FH.Pos)]
+infiniteMaxFoxBoxFH = map fst $ filter f $ Map.toList FH.maxFoxBox
+  where
+    f ((pl,p), Max n _) = (n == Never) /= FH.winningForFox pl p
+
+showInfiniteMaxFoxBoxFH :: [(Player,FH.Pos)] -> String
+showInfiniteMaxFoxBoxFH ps =
+    show (length ps) ++ concatMap showPos ps
+  where
+    showPos (pl,p) =
+        "\n\n" ++ FH.ppPlayer pl ++ " to move" ++ show p ++
+        "Position evaluation: " ++ FH.ppEval ev ++ "\n" ++
+        "Maximum FoxBox: " ++ show fb
+      where
+        ev = Game.evalUnsafe FH.solution pl p
+        fb = Game.evalUnsafe FH.maxFoxBox pl p
 
 foxBoxStrategyFailFH :: StrategyFail FH.Pos
 foxBoxStrategyFailFH =
@@ -214,7 +232,7 @@ showProbDepthFH ps =
 fuzzTableFH :: (Prob,[(Prob,(Prob,Prob))])
 fuzzTableFH = binary [] (0.0, entry 0.0) (1.0, entry 1.0) []
   where
-    threshold = 0.001
+    threshold = 0.00001
     target = 0.5
 
     binary ls (lf,lp) (uf,up) us =
@@ -244,7 +262,7 @@ fuzzFH = fst fuzzTableFH
 
 showFuzzTableFH :: (Prob,[(Prob,(Prob,Prob))]) -> String
 showFuzzTableFH (fuzz,rows) =
-    showProb fuzz ++ "\n" ++
+    showFuzz fuzz ++ "\n" ++
     showTable
       ([] :
        ["Fuzz", "Fox", "Hounds"] :
@@ -252,11 +270,12 @@ showFuzzTableFH (fuzz,rows) =
        ["", "from", "from"] :
        ["", ifp, ihp] :
        [] :
-       map row rows ++
+       map showRow rows ++
        [[]])
   where
     (ifp,ihp) = initialPositionsFH
-    row (f,(pf,ph)) = [showProb f, showProb pf, showProb ph]
+    showRow (f,(pf,ph)) = [showFuzz f, showProb pf, showProb ph]
+    showFuzz p = showFFloat (Just 6) p ""
 
 maxIntCdfFH :: Integer
 maxIntCdfFH = 100000
@@ -350,12 +369,12 @@ main = do
     putStrLn $ ppPositionFH "typical FoxBox"
     putStrLn ""
     putStrLn $ "Incorrect position evaluations: " ++ showIncorrectPositionEvaluationsFH incorrectPositionEvaluationsFH
+    putStrLn $ "Positions violating infinite maximum FoxBox iff winning for Fox: " ++ showInfiniteMaxFoxBoxFH infiniteMaxFoxBoxFH
     putStrLn ""
     putStr $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
     putStrLn ""
     putStrLn $ "Win probabilities against strategies of different depths:"
     putStrLn $ showProbDepthFH probDepthFH
-    putStrLn ""
     putStr $ "Fairest fuzz factor: "
     putStrLn $ showFuzzTableFH fuzzTableFH
     putStr $ "Creating game database in " ++ dbFH ++ ":"

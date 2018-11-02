@@ -122,7 +122,7 @@ empty :: Pos -> Coord -> Bool
 empty p = not . occupied p
 
 isFoxBox :: Pos -> Bool
-isFoxBox p = Set.isSubsetOf f h
+isFoxBox p = Set.size f == 1 || Set.isSubsetOf f h
   where
     f = foxReachable (hounds p) (fox p)
     h = houndsReachable (hounds p)
