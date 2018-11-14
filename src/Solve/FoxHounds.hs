@@ -250,6 +250,11 @@ foxBox = Game.force game Player2 (const isFoxBox) Player1 initial
 maxFoxBox :: Val Pos (Max Event)
 maxFoxBox = Game.gameMax game Player1 (Game.evalUnsafe foxBox) Player1 initial
 
+foxDodge :: Force Pos
+foxDodge = Game.force game Player1 (const isFoxDodge) Player1 initial
+  where
+    isFoxDodge p = Set.notMember (fox p) $ houndsReachable (hounds p)
+
 stopLossStrategy :: Player -> Int -> Strategy Pos
 stopLossStrategy = Strategy.stopLossStrategy solution
 
@@ -258,6 +263,9 @@ foxBoxStrategy = Strategy.forceStrategy foxBox Player2
 
 maxFoxBoxStrategy :: Player -> Strategy Pos
 maxFoxBoxStrategy = Strategy.maxStrategy . Game.evalUnsafe maxFoxBox
+
+maxFoxDodgeStrategy :: Player -> Strategy Pos
+maxFoxDodgeStrategy = Strategy.maxStrategy . Game.evalUnsafe foxDodge
 
 -- Best known parameterized strategies
 
@@ -285,7 +293,7 @@ strategy fuzz pl =
     str [] = []
     str pws =
         (if Game.winning Player1 (pe $ fst $ head pws)
-         then Strategy.bestStrategy Player2 pe
+         then maxFoxDodgeStrategy pl'
          else maxFoxBoxStrategy pl') pws
     pe = Game.evalUnsafe solution pl'
     pl' = Game.turn pl

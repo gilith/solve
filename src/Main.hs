@@ -43,6 +43,8 @@ reachableNC = Game.reachable NC.solution
 -- Fox & Hounds
 -------------------------------------------------------------------------------
 
+type RowFH = (FH.Idx, (Bool,Int), Event, Event, Max Event, [(FH.Idx,Integer)])
+
 dimFH :: String
 dimFH = let n = show FH.boardSize in n ++ "x" ++ n
 
@@ -280,11 +282,11 @@ showFuzzTableFH (fuzz,rows) =
 maxIntCdfFH :: Integer
 maxIntCdfFH = 100000
 
-posEntryFH :: (Player,FH.Pos) ->
-              (FH.Idx, (Bool,Int), Event, Max Event, [(FH.Idx,Integer)])
-posEntryFH (pl,p) = (FH.posToIdx p, w, fb, fbm, moves mvs)
+posEntryFH :: (Player,FH.Pos) -> RowFH
+posEntryFH (pl,p) = (FH.posToIdx p, w, fd, fb, fbm, moves mvs)
   where
     w = (FH.winningForFox pl p, FH.winDepth pl p)
+    fd = Game.evalUnsafe FH.foxDodge pl p
     fb = Game.evalUnsafe FH.foxBox pl p
     fbm = Game.evalUnsafe FH.maxFoxBox pl p
     mvs = FH.moveDist fuzzFH pl p
@@ -297,12 +299,11 @@ posEntryFH (pl,p) = (FH.posToIdx p, w, fb, fbm, moves mvs)
         pieces q = Set.insert (FH.fox q) (FH.hounds q)
         m = fromInteger maxIntCdfFH
 
-posTableFH :: [(FH.Idx, (Bool,Int), Event, Max Event, [(FH.Idx,Integer)])]
+posTableFH :: [RowFH]
 posTableFH = map posEntryFH $ Map.keys FH.solution
 
-showPosEntryFH :: (FH.Idx, (Bool,Int), Event, Max Event, [(FH.Idx,Integer)]) ->
-                  String
-showPosEntryFH (pos, (wf,wd), fb, Max fbv fbk, mvs) =
+showPosEntryFH :: RowFH -> String
+showPosEntryFH (pos, (wf,wd), fd, fb, Max fbv fbk, mvs) =
     "INSERT INTO `foxhounds` VALUES " ++
     "(" ++ List.intercalate "," values ++ ");"
   where
@@ -310,6 +311,7 @@ showPosEntryFH (pos, (wf,wd), fb, Max fbv fbk, mvs) =
       show pos :
       showBool wf :
       show wd :
+      showEvent fd :
       showEvent fb :
       showEvent fbv :
       show fbk :
@@ -327,8 +329,7 @@ showPosEntryFH (pos, (wf,wd), fb, Max fbv fbk, mvs) =
     showBool True = "'T'"
     showBool False = "'F'"
 
-writePosTableFH :: FilePath ->
-                   [(FH.Idx, (Bool,Int), Event, Max Event, [(FH.Idx,Integer)])] -> IO ()
+writePosTableFH :: FilePath -> [RowFH] -> IO ()
 writePosTableFH file entries = withFile file WriteMode $ \h ->
     mapM_ (hPutStrLn h . showPosEntryFH) entries
 
