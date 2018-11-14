@@ -293,7 +293,7 @@ strategy fuzz pl =
     str [] = []
     str pws =
         (if Game.winning Player1 (pe $ fst $ head pws)
-         then maxFoxDodgeStrategy pl'
+         then Strategy.bestStrategy Player2 pe
          else maxFoxBoxStrategy pl') pws
     pe = Game.evalUnsafe solution pl'
     pl' = Game.turn pl
