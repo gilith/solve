@@ -43,7 +43,7 @@ reachableNC = Game.reachable NC.solution
 -- Fox & Hounds
 -------------------------------------------------------------------------------
 
-type RowFH = (FH.Idx, (Bool,Int), Event, Event, Max Event, [(FH.Idx,Integer)])
+type RowFH = (FH.Idx, (Bool,Int), Event, Max Event, [(FH.Idx,Integer)])
 
 dimFH :: String
 dimFH = let n = show FH.boardSize in n ++ "x" ++ n
@@ -102,7 +102,8 @@ showIncorrectPositionEvaluationsFH ds =
         "Correct position evaluation: " ++ FH.ppEval e'
 
 infiniteMaxFoxBoxFH :: [(Player,FH.Pos)]
-infiniteMaxFoxBoxFH = map fst $ filter f $ Map.toList FH.maxFoxBox
+infiniteMaxFoxBoxFH =
+    map fst $ filter f $ Map.toList FH.maxFoxBox
   where
     f ((pl,p), Max n _) = (n == Never) /= FH.winningForFox pl p
 
@@ -183,16 +184,20 @@ initialPositionsFH =
 
 ppPositionFH :: String -> String
 ppPositionFH s =
-    sp ++ ": " ++ FH.ppPlayer pl ++ " to move" ++ show p ++
-    sp ++ " evaluation: " ++ FH.ppEval ev ++ "\n" ++
-    sp ++ " maximum FoxBox: " ++ show fb ++ "\n" ++
-    sp ++ " index: " ++ show idx
+    sp ++ ":\n" ++
+    FH.ppPlayer pl ++ " to move" ++
+    show p ++
+    "Evaluation: " ++ FH.ppEval ev ++ "\n" ++
+    "FoxBox: " ++ show fb ++ "\n" ++
+    "Maximum FoxBox: " ++ show mfb ++ "\n" ++
+    "Index: " ++ show idx
   where
+    sp = ucfirst s ++ " position"
     ev = Game.evalUnsafe FH.solution pl p
-    fb = Game.evalUnsafe FH.maxFoxBox pl p
+    fb = Game.evalUnsafe FH.foxBox pl p
+    mfb = Game.evalUnsafe FH.maxFoxBox pl p
     idx = FH.posToIdx p
     (pl,p) = getPositionFH s
-    sp = ucfirst s ++ " position"
 
 probWinFH :: Int -> ((Prob,Prob,Prob),Prob)
 probWinFH n = ((f1,f2,f3),h1)
@@ -283,10 +288,9 @@ maxIntCdfFH :: Integer
 maxIntCdfFH = 100000
 
 posEntryFH :: (Player,FH.Pos) -> RowFH
-posEntryFH (pl,p) = (FH.posToIdx p, w, fd, fb, fbm, moves mvs)
+posEntryFH (pl,p) = (FH.posToIdx p, w, fb, fbm, moves mvs)
   where
     w = (FH.winningForFox pl p, FH.winDepth pl p)
-    fd = Game.evalUnsafe FH.foxDodge pl p
     fb = Game.evalUnsafe FH.foxBox pl p
     fbm = Game.evalUnsafe FH.maxFoxBox pl p
     mvs = FH.moveDist fuzzFH pl p
@@ -303,7 +307,7 @@ posTableFH :: [RowFH]
 posTableFH = map posEntryFH $ Map.keys FH.solution
 
 showPosEntryFH :: RowFH -> String
-showPosEntryFH (pos, (wf,wd), fd, fb, Max fbv fbk, mvs) =
+showPosEntryFH (pos, (wf,wd), fb, Max fbv fbk, mvs) =
     "INSERT INTO `foxhounds` VALUES " ++
     "(" ++ List.intercalate "," values ++ ");"
   where
@@ -311,7 +315,6 @@ showPosEntryFH (pos, (wf,wd), fd, fb, Max fbv fbk, mvs) =
       show pos :
       showBool wf :
       show wd :
-      showEvent fd :
       showEvent fb :
       showEvent fbv :
       show fbk :
@@ -370,9 +373,8 @@ main = do
     putStrLn $ ppPositionFH "typical FoxBox"
     putStrLn ""
     putStrLn $ "Incorrect position evaluations: " ++ showIncorrectPositionEvaluationsFH incorrectPositionEvaluationsFH
+    putStrLn $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
     putStrLn $ "Positions violating infinite maximum FoxBox iff winning for Fox: " ++ showInfiniteMaxFoxBoxFH infiniteMaxFoxBoxFH
-    putStrLn ""
-    putStr $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
     putStrLn ""
     putStrLn $ "Win probabilities against strategies of different depths:"
     putStrLn $ showProbDepthFH probDepthFH

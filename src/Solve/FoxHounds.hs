@@ -245,15 +245,12 @@ gamesInitial = evalInitial games
 -------------------------------------------------------------------------------
 
 foxBox :: Force Pos
-foxBox = Game.force game Player2 (const isFoxBox) Player1 initial
+foxBox = Game.force game Player2 isWinningFoxBox Player1 initial
+  where
+    isWinningFoxBox pl p = winningForHounds pl p && isFoxBox p
 
 maxFoxBox :: Val Pos (Max Event)
 maxFoxBox = Game.gameMax game Player1 (Game.evalUnsafe foxBox) Player1 initial
-
-foxDodge :: Force Pos
-foxDodge = Game.force game Player1 (const isFoxDodge) Player1 initial
-  where
-    isFoxDodge p = Set.notMember (fox p) $ houndsReachable (hounds p)
 
 stopLossStrategy :: Player -> Int -> Strategy Pos
 stopLossStrategy = Strategy.stopLossStrategy solution
@@ -263,9 +260,6 @@ foxBoxStrategy = Strategy.forceStrategy foxBox Player2
 
 maxFoxBoxStrategy :: Player -> Strategy Pos
 maxFoxBoxStrategy = Strategy.maxStrategy . Game.evalUnsafe maxFoxBox
-
-maxFoxDodgeStrategy :: Player -> Strategy Pos
-maxFoxDodgeStrategy = Strategy.maxStrategy . Game.evalUnsafe foxDodge
 
 -- Best known parameterized strategies
 
