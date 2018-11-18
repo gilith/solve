@@ -6,7 +6,8 @@ Reachable positions: 69575678
 Reachable position index range: (319007705,15854721998)
 Possible games: 70297467696717584052559348316424667585035088022072598144 (~10^55)
 
-Initial position: Fox to move
+Initial position:
+Fox to move
 +----------+
 |* * F * * |
 | * * * * *|
@@ -19,11 +20,13 @@ Initial position: Fox to move
 |* * * * * |
 | H H H H H|
 +----------+
-Initial position evaluation: Hounds win in 72
-Initial position maximum FoxBox: Max (In 10) 24
-Initial position index: 1224619949
+Evaluation: Hounds win in 72
+FoxBox: In 0
+Maximum FoxBox: Max (In 10) 24
+Index: 1224619949
 
-Opposite position: Fox to move
+Opposite position:
+Fox to move
 +----------+
 |* * * * * |
 | * * * * *|
@@ -36,11 +39,13 @@ Opposite position: Fox to move
 |* * * * * |
 | H H * H H|
 +----------+
-Opposite position evaluation: Fox win in 43
-Opposite position maximum FoxBox: Max Never 0
-Opposite position index: 3993242449
+Evaluation: Fox win in 43
+FoxBox: Never
+Maximum FoxBox: Max Never 0
+Index: 3993242449
 
-Hounds victory position: Fox to move
+Hounds victory position:
+Fox to move
 +----------+
 |* * * * H |
 | * * * H *|
@@ -53,11 +58,13 @@ Hounds victory position: Fox to move
 |* * * * H |
 | * * H * F|
 +----------+
-Hounds victory position evaluation: Hounds win in 0
-Hounds victory position maximum FoxBox: Max (In 0) 0
-Hounds victory position index: 15651052247
+Evaluation: Hounds win in 0
+FoxBox: In 0
+Maximum FoxBox: Max (In 0) 0
+Index: 15651052247
 
-Fox escaped position: Fox to move
+Fox escaped position:
+Fox to move
 +----------+
 |* * * * H |
 | * * * * *|
@@ -70,11 +77,13 @@ Fox escaped position: Fox to move
 |* * * * * |
 | * * * * *|
 +----------+
-Fox escaped position evaluation: Fox win in 0
-Fox escaped position maximum FoxBox: Max Never 0
-Fox escaped position index: 7840054135
+Evaluation: Fox win in 0
+FoxBox: Never
+Maximum FoxBox: Max Never 0
+Index: 7840054135
 
-Fox victory without escape position: Hounds to move
+Fox victory without escape position:
+Hounds to move
 +----------+
 |H H * * H |
 | H * * * *|
@@ -87,11 +96,13 @@ Fox victory without escape position: Hounds to move
 |* * * * * |
 | * * * * *|
 +----------+
-Fox victory without escape position evaluation: Fox win in 0
-Fox victory without escape position maximum FoxBox: Max Never 0
-Fox victory without escape position index: 7812635279
+Evaluation: Fox win in 0
+FoxBox: Never
+Maximum FoxBox: Max Never 0
+Index: 7812635279
 
-Typical FoxBox position: Fox to move
+Typical FoxBox position:
+Fox to move
 +----------+
 |* * * * * |
 | * * * * *|
@@ -104,42 +115,12 @@ Typical FoxBox position: Fox to move
 |* * * * * |
 | * * * * *|
 +----------+
-Typical FoxBox position evaluation: Hounds win in 44
-Typical FoxBox position maximum FoxBox: Max (In 8) 20
-Typical FoxBox position index: 7697834235
+Evaluation: Hounds win in 44
+FoxBox: In 0
+Maximum FoxBox: Max (In 8) 20
+Index: 7697834235
 
 Incorrect position evaluations: 0
-Positions violating infinite maximum FoxBox iff winning for Fox: 2
-
-Fox to move
-+----------+
-|F H H * * |
-| * H * * *|
-|H H * * * |
-| * * * * *|
-|* * * * * |
-| * * * * *|
-|* * * * * |
-| * * * * *|
-|* * * * * |
-| * * * * *|
-+----------+
-Position evaluation: Fox win in 1
-Maximum FoxBox: Max (In 0) 0
-
-Hounds to move
-+----------+
-|* H H * * |
-| F H * * *|
-|H H * * * |
-| * * * * *|
-|* * * * * |
-| * * * * *|
-|* * * * * |
-| * * * * *|
-|* * * * * |
-| * * * * *|
-+----------+
-Position evaluation: Fox win in 0
-Maximum FoxBox: Max (In 0) 0
+FoxBox strategy failure positions: 0
+Positions violating infinite maximum FoxBox iff winning for Fox: 0
 ___________________________________________________________________________

@@ -6,7 +6,8 @@ Reachable positions: 8175
 Reachable position index range: (6195,108430)
 Possible games: 982462133247 (~10^11)
 
-Initial position: Fox to move
+Initial position:
+Fox to move
 +------+
 |* F * |
 | * * *|
@@ -15,11 +16,13 @@ Initial position: Fox to move
 |* * * |
 | H H H|
 +------+
-Initial position evaluation: Fox win in 21
-Initial position maximum FoxBox: Max Never 10
-Initial position index: 16829
+Evaluation: Fox win in 21
+FoxBox: Never
+Maximum FoxBox: Max Never 0
+Index: 16829
 
-Opposite position: Hounds to move
+Opposite position:
+Hounds to move
 +------+
 |* * * |
 | * * *|
@@ -28,11 +31,13 @@ Opposite position: Hounds to move
 |H * * |
 | * H H|
 +------+
-Opposite position evaluation: Hounds win in 17
-Opposite position maximum FoxBox: Max (In 4) 1
-Opposite position index: 45017
+Evaluation: Hounds win in 17
+FoxBox: In 7
+Maximum FoxBox: Max (In 7) 0
+Index: 45017
 
-Hounds victory position: Fox to move
+Hounds victory position:
+Fox to move
 +------+
 |F * * |
 | H * *|
@@ -41,11 +46,13 @@ Hounds victory position: Fox to move
 |* * H |
 | * * *|
 +------+
-Hounds victory position evaluation: Hounds win in 0
-Hounds victory position maximum FoxBox: Max (In 0) 0
-Hounds victory position index: 6962
+Evaluation: Hounds win in 0
+FoxBox: In 0
+Maximum FoxBox: Max (In 0) 0
+Index: 6962
 
-Fox escaped position: Hounds to move
+Fox escaped position:
+Hounds to move
 +------+
 |* * * |
 | H * *|
@@ -54,11 +61,13 @@ Fox escaped position: Hounds to move
 |H * * |
 | * * *|
 +------+
-Fox escaped position evaluation: Fox win in 0
-Fox escaped position maximum FoxBox: Max Never 0
-Fox escaped position index: 65280
+Evaluation: Fox win in 0
+FoxBox: Never
+Maximum FoxBox: Max Never 0
+Index: 65280
 
-Fox victory without escape position: Hounds to move
+Fox victory without escape position:
+Hounds to move
 +------+
 |* * H |
 | * * H|
@@ -67,11 +76,13 @@ Fox victory without escape position: Hounds to move
 |* * * |
 | * * *|
 +------+
-Fox victory without escape position evaluation: Fox win in 0
-Fox victory without escape position maximum FoxBox: Max Never 0
-Fox victory without escape position index: 53237
+Evaluation: Fox win in 0
+FoxBox: Never
+Maximum FoxBox: Max Never 0
+Index: 53237
 
-Typical FoxBox position: Fox to move
+Typical FoxBox position:
+Fox to move
 +------+
 |* * F |
 | * * *|
@@ -80,67 +91,14 @@ Typical FoxBox position: Fox to move
 |* H H |
 | H * *|
 +------+
-Typical FoxBox position evaluation: Fox win in 17
-Typical FoxBox position maximum FoxBox: Max Never 6
-Typical FoxBox position index: 21975
+Evaluation: Fox win in 17
+FoxBox: Never
+Maximum FoxBox: Max Never 0
+Index: 21975
 
 Incorrect position evaluations: 0
+FoxBox strategy failure positions: 0
 Positions violating infinite maximum FoxBox iff winning for Fox: 0
-
-FoxBox strategy failure positions: 5
-------------------+---------------+------------------
-         Position | Strategy move |      Better move
-------------------+---------------+------------------
-         +------+ |      +------+ |         +------+
-         |F * * | |      |F * * | |         |F * * |
-         | * * *| |      | * * *| |         | * * *|
-         |* * * | |      |* * * | |         |* * * |
-         | * * *| |      | * * *| |         | * H *|
-         |* * H | |      |* H H | |         |* * * |
-         | H H *| |      | H * *| |         | H H *|
-         +------+ |      +------+ |         +------+
- Hounds win in 17 | Fox win in 17 | Hounds win in 16
-------------------+---------------+------------------
-         +------+ |      +------+ |         +------+
-         |* F * | |      |* F * | |         |* F * |
-         | * * *| |      | * * *| |         | * * *|
-         |* * * | |      |* * * | |         |* * * |
-         | * * *| |      | * * *| |         | * H *|
-         |* * H | |      |* H H | |         |* * * |
-         | H H *| |      | H * *| |         | H H *|
-         +------+ |      +------+ |         +------+
- Hounds win in 17 | Fox win in 17 | Hounds win in 16
-------------------+---------------+------------------
-         +------+ |      +------+ |         +------+
-         |* * * | |      |* * * | |         |* * * |
-         | * * *| |      | * * *| |         | * * *|
-         |* * F | |      |* * F | |         |* * F |
-         | * * *| |      | H * *| |         | * H *|
-         |H H H | |      |* H H | |         |H * H |
-         | * * *| |      | * * *| |         | * * *|
-         +------+ |      +------+ |         +------+
- Hounds win in 13 | Fox win in 13 | Hounds win in 12
-------------------+---------------+------------------
-         +------+ |      +------+ |         +------+
-         |* * * | |      |* * * | |         |* * * |
-         | * * *| |      | * * *| |         | * * *|
-         |* * F | |      |* * F | |         |* * F |
-         | * * *| |      | * * *| |         | * H *|
-         |* * H | |      |* H H | |         |* * * |
-         | H H *| |      | H * *| |         | H H *|
-         +------+ |      +------+ |         +------+
- Hounds win in 17 | Fox win in 17 | Hounds win in 16
-------------------+---------------+------------------
-         +------+ |      +------+ |         +------+
-         |* * F | |      |* * F | |         |* * F |
-         | * * *| |      | * * *| |         | * * *|
-         |* * * | |      |* * * | |         |* * * |
-         | * * *| |      | * * *| |         | * H *|
-         |* * H | |      |* H H | |         |* * * |
-         | H H *| |      | H * *| |         | H H *|
-         +------+ |      +------+ |         +------+
- Hounds win in 17 | Fox win in 17 | Hounds win in 16
-------------------+---------------+------------------
 
 Win probabilities against strategies of different depths:
 ----------+----------+----------+----------+----------
@@ -151,24 +109,24 @@ Win probabilities against strategies of different depths:
           |     from |     from |     from |     from
           | opposite | opposite | opposite |  initial
 ----------+----------+----------+----------+----------
-        0 |    1.000 |    0.984 |    1.000 |    1.000
-        1 |    1.000 |    0.984 |    0.984 |    1.000
-        2 |    1.000 |    0.984 |    0.984 |    0.999
-        3 |    1.000 |    0.984 |    1.000 |    0.999
-        4 |    0.999 |    0.970 |    1.000 |    0.999
-        5 |    0.999 |    0.970 |    0.778 |    0.999
-        6 |    0.989 |    0.889 |    0.778 |    0.999
-        7 |    0.989 |    0.889 |    0.778 |    0.999
-        8 |    0.940 |    0.889 |    0.778 |    0.996
-        9 |    0.940 |    0.889 |    0.778 |    0.996
-       10 |    0.778 |    0.889 |    0.778 |    0.989
-       11 |    0.778 |    0.889 |    0.778 |    0.989
-       12 |    0.778 |    0.889 |    0.778 |    0.972
-       13 |    0.778 |    0.889 |    0.778 |    0.972
-       14 |    0.667 |    0.667 |    0.667 |    0.917
-       15 |    0.667 |    0.667 |    0.667 |    0.917
-       16 |    0.667 |    0.667 |    0.667 |    0.750
-       17 |    0.667 |    0.667 |    0.667 |    0.750
+        0 |    1.000 |    0.955 |    1.000 |    1.000
+        1 |    1.000 |    0.955 |    0.955 |    1.000
+        2 |    1.000 |    0.955 |    0.955 |    0.999
+        3 |    1.000 |    0.955 |    0.850 |    0.999
+        4 |    0.999 |    0.915 |    0.800 |    0.999
+        5 |    0.999 |    0.915 |    0.667 |    0.999
+        6 |    0.989 |    0.778 |    0.667 |    0.999
+        7 |    0.989 |    0.778 |    0.000 |    0.999
+        8 |    0.940 |    0.778 |    0.000 |    0.996
+        9 |    0.940 |    0.778 |    0.000 |    0.996
+       10 |    0.778 |    0.778 |    0.000 |    0.989
+       11 |    0.778 |    0.778 |    0.000 |    0.989
+       12 |    0.778 |    0.778 |    0.000 |    0.972
+       13 |    0.778 |    0.778 |    0.000 |    0.972
+       14 |    0.667 |    0.667 |    0.000 |    0.917
+       15 |    0.667 |    0.667 |    0.000 |    0.917
+       16 |    0.667 |    0.667 |    0.000 |    0.750
+       17 |    0.667 |    0.667 |    0.000 |    0.750
        18 |    0.000 |    0.000 |    0.000 |    0.000
        19 |    0.000 |    0.000 |    0.000 |    0.000
        20 |    0.000 |    0.000 |    0.000 |    0.000
@@ -183,23 +141,23 @@ Fairest fuzz factor: 0.041771
           | opposite | initial
 ----------+----------+---------
  0.000000 |    0.000 |   0.000
- 0.031250 |    0.574 |   0.409
- 0.039062 |    0.650 |   0.478
- 0.041016 |    0.666 |   0.494
- 0.041504 |    0.670 |   0.498
- 0.041748 |    0.672 |   0.500
- 0.041763 |    0.672 |   0.500
- 0.041771 |    0.672 |   0.500
- 0.041779 |    0.672 |   0.500
- 0.041809 |    0.673 |   0.500
- 0.041870 |    0.673 |   0.501
- 0.041992 |    0.674 |   0.502
- 0.042969 |    0.682 |   0.509
- 0.046875 |    0.710 |   0.538
- 0.062500 |    0.798 |   0.636
- 0.125000 |    0.943 |   0.847
- 0.250000 |    0.992 |   0.961
- 0.500000 |    1.000 |   0.995
+ 0.031250 |    0.555 |   0.409
+ 0.039062 |    0.631 |   0.478
+ 0.041016 |    0.648 |   0.494
+ 0.041504 |    0.652 |   0.498
+ 0.041748 |    0.654 |   0.500
+ 0.041763 |    0.654 |   0.500
+ 0.041771 |    0.654 |   0.500
+ 0.041779 |    0.654 |   0.500
+ 0.041809 |    0.655 |   0.500
+ 0.041870 |    0.655 |   0.501
+ 0.041992 |    0.656 |   0.502
+ 0.042969 |    0.664 |   0.509
+ 0.046875 |    0.693 |   0.538
+ 0.062500 |    0.783 |   0.636
+ 0.125000 |    0.937 |   0.847
+ 0.250000 |    0.991 |   0.961
+ 0.500000 |    0.999 |   0.995
  1.000000 |    1.000 |   1.000
 ----------+----------+---------
 
