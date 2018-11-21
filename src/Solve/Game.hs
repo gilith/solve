@@ -229,6 +229,9 @@ gamesWith game = dfsWith pre post
 games :: Ord p => Game p -> Player -> p -> Games p
 games game pl p = snd $ gamesWith game Map.empty pl p
 
+ppGames :: Integer -> String
+ppGames n = let s = show n in s ++ " (~10^" ++ show (length s - 1) ++ ")"
+
 -------------------------------------------------------------------------------
 -- Forcing positions that satisfy a predicate
 -------------------------------------------------------------------------------

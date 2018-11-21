@@ -25,6 +25,7 @@ Library
     Solve.Game,
     Solve.Graph,
     Solve.NoughtsCrosses,
+    Solve.QueenPawns,
     Solve.Strategy,
     Solve.Util
 

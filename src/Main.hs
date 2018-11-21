@@ -16,8 +16,8 @@ import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe (mapMaybe)
---import qualified System.Environment as Environment
 import Numeric (showFFloat)
+import qualified System.Environment as Environment
 import System.FilePath ((</>),(<.>))
 import System.IO (IOMode(..),hPutStrLn,withFile)
 
@@ -25,6 +25,7 @@ import qualified Solve.FoxHounds as FH
 import Solve.Game (Eval(..),Event(..),Max(..),Moves,Player(..))
 import qualified Solve.Game as Game
 import qualified Solve.NoughtsCrosses as NC
+import qualified Solve.QueenPawns as QP
 import Solve.Strategy (Strategy,StrategyFail)
 import qualified Solve.Strategy as Strategy
 import Solve.Util
@@ -38,6 +39,12 @@ dimNC = let n = show NC.boardSize in n ++ "x" ++ n
 
 reachableNC :: Int
 reachableNC = Game.reachable NC.solution
+
+analyzeNC :: IO ()
+analyzeNC = do
+    putStrLn $ "Board size: " ++ dimNC
+    putStrLn $ "Reachable positions: " ++ show reachableNC
+    putStrLn $ "Possible games: " ++ Game.ppGames NC.gamesInitial
 
 -------------------------------------------------------------------------------
 -- Fox & Hounds
@@ -336,29 +343,12 @@ writePosTableFH :: FilePath -> [RowFH] -> IO ()
 writePosTableFH file entries = withFile file WriteMode $ \h ->
     mapM_ (hPutStrLn h . showPosEntryFH) entries
 
--------------------------------------------------------------------------------
--- Top-level
--------------------------------------------------------------------------------
-
-lineLength :: Int
-lineLength = 75
-
-main :: IO ()
-main = do
-    --args <- Environment.getArgs
-    ___
-    putStrLn "NOUGHTS & CROSSES"
-    putStrLn ""
-    putStrLn $ "Board size: " ++ dimNC
-    putStrLn $ "Reachable positions: " ++ show reachableNC
-    putStrLn $ "Possible games: " ++ ppGames NC.gamesInitial
-    ___
-    putStrLn "FOX & HOUNDS"
-    putStrLn ""
+analyzeFH :: IO ()
+analyzeFH = do
     putStrLn $ "Board size: " ++ dimFH
     putStrLn $ "Reachable positions: " ++ show reachableFH
     putStrLn $ "Reachable position index range: " ++ show reachableIdxFH
-    putStrLn $ "Possible games: " ++ ppGames FH.gamesInitial
+    putStrLn $ "Possible games: " ++ Game.ppGames FH.gamesInitial
     putStrLn ""
     putStrLn $ ppPositionFH "initial"
     putStrLn ""
@@ -383,8 +373,82 @@ main = do
     putStr $ "Creating game database in " ++ dbFH ++ ":"
     writePosTableFH dbFH posTableFH
     putStrLn $ " " ++ show (length posTableFH) ++ " rows"
+
+-------------------------------------------------------------------------------
+-- Queen & Pawns
+-------------------------------------------------------------------------------
+
+dimQP :: String
+dimQP = let n = show QP.boardSize in n ++ "x" ++ n
+
+reachableQP :: Int
+reachableQP = Game.reachable QP.solution
+
+getPositionQP :: String -> (Player,QP.Pos)
+getPositionQP "initial" = (Player1,QP.initial)
+getPositionQP "opposite" = QP.opposite
+getPositionQP _ = error "unknown position"
+
+ppPositionQP :: String -> String
+ppPositionQP s =
+    sp ++ ":\n" ++
+    QP.ppPlayer pl ++ " to move" ++
+    show p ++
+    "Evaluation: " ++ QP.ppEval ev ++ "\n" ++
+    "Index: " -- ++ show idx
+  where
+    sp = ucfirst s ++ " position"
+    ev = Game.evalUnsafe QP.solution pl p
+    --idx = QP.posToIdx p
+    (pl,p) = getPositionQP s
+
+analyzeQP :: IO ()
+analyzeQP = do
+    putStrLn $ "Board size: " ++ dimQP
+    putStrLn $ "Reachable positions: " ++ show reachableQP
+    putStrLn $ "Possible games: " ++ Game.ppGames QP.gamesInitial
+    putStrLn ""
+    putStrLn $ ppPositionQP "initial"
+    putStrLn ""
+    putStrLn $ ppPositionQP "opposite"
+
+-------------------------------------------------------------------------------
+-- Top-level
+-------------------------------------------------------------------------------
+
+lineLength :: Int
+lineLength = 75
+
+games :: [(String, String, IO ())]
+games = [("NC", "Noughts & Crosses", analyzeNC),
+         ("FH", "Fox & Hounds", analyzeFH),
+         ("QP", "Queen & Pawns", analyzeQP)]
+
+usage :: String -> a
+usage err =
+    error $ err ++ "\n" ++ info
+  where
+    info =
+      "Usage: solve GAME\n" ++
+      "where GAME is one of the following:" ++ concatMap gameOpt games
+    gameOpt (o,n,_) = "\n  " ++ o ++ " : " ++ n
+
+main :: IO ()
+main = do
+    args <- Environment.getArgs
+    let opt =  case args of
+                    [] -> usage "no arguments"
+                    [o] -> o
+                    _ -> usage "too many arguments"
+    let (name,analyze) = case filter (\(o,_,_) -> o == opt) games of
+                           [] -> usage "unknown game"
+                           [(_,n,a)] -> (n,a)
+                           _ -> error "duplicate game"
+    ___
+    putStrLn name
+    putStrLn ""
+    analyze
     ___
     return ()
   where
-    ppGames n = let s = show n in s ++ " (~10^" ++ show (length s - 1) ++ ")"
     ___ = putStrLn $ replicate lineLength '_'
