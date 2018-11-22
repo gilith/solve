@@ -1,0 +1,61 @@
+___________________________________________________________________________
+Queen & Pawns
+
+Board size: 8x8
+Reachable positions: 445,744,430
+Reachable position index range: (2,368927655)
+Possible games: 1,604,459,716,839,504,164,627,223,238,578,860,475,424,320,234,847,754,334,683,852,291,480 (~10^66)
+
+Initial position:
+Pawns to move
++--------+
+| * Q * *|
+|* * * * |
+| * * * *|
+|* * * * |
+| * * * *|
+|* * * * |
+|PPPPPPPP|
+|* * * * |
++--------+
+Evaluation: Pawns win in 31
+Index: 179669631
+
+Opposite position:
+Queen to move
++--------+
+| * Q * *|
+|* * * * |
+| * * * *|
+|* * * * |
+| * * * *|
+|P * * * |
+| PPPPPPP|
+|* * * * |
++--------+
+Evaluation: Queen win in 29
+Index: 179669632
+___________________________________________________________________________
+	Command being timed: "dist/build/solve/solve QP"
+	User time (seconds): 31018.99
+	System time (seconds): 115.08
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 8:39:13
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 260362132
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 65090624
+	Voluntary context switches: 3
+	Involuntary context switches: 2630774
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

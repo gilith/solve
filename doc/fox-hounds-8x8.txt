@@ -1,10 +1,10 @@
 ___________________________________________________________________________
-FOX & HOUNDS
+Fox & Hounds
 
 Board size: 8x8
-Reachable positions: 709868
+Reachable positions: 709,868
 Reachable position index range: (1083496,34265854)
-Possible games: 360552037329667882019232833884 (~10^29)
+Possible games: 360,552,037,329,667,882,019,232,833,884 (~10^29)
 
 Initial position:
 Fox to move
@@ -198,3 +198,26 @@ Fairest fuzz factor: 0.006935
 
 Creating game database in doc/fox-hounds-8x8.sql: 709868 rows
 ___________________________________________________________________________
+	Command being timed: "dist/build/solve/solve FH"
+	User time (seconds): 2458.52
+	System time (seconds): 6.07
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 41:06.55
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1644584
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 412258
+	Voluntary context switches: 145
+	Involuntary context switches: 210708
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 260720
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
