@@ -14,6 +14,7 @@ where
 import qualified Data.Char as Char
 import Data.List (sort)
 import qualified Data.Map as Map
+import Data.Maybe (mapMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
 
@@ -28,7 +29,7 @@ import Solve.Util
 -------------------------------------------------------------------------------
 
 boardSize :: Int
-boardSize = 5
+boardSize = 8
 
 -------------------------------------------------------------------------------
 -- Coordinates
@@ -57,17 +58,6 @@ onBoard (Coord x y) =
 
 darkSquare :: Coord -> Bool
 darkSquare (Coord x y) = even (x + y)
-
-{-
-coordToSquare :: Coord -> Idx
-coordToSquare (Coord x y) = packSize * (boardSize - (y + 1)) + x `div` 2
-
-squareToCoord :: Idx -> Coord
-squareToCoord i = Coord x y
-  where
-    y = (boardSize - 1) - (i `div` packSize)
-    x = 2 * (i `mod` packSize) + (1 - y `mod` 2)
--}
 
 -------------------------------------------------------------------------------
 -- Vectors
@@ -129,18 +119,16 @@ moveAlongVectors :: [Vector] -> Coord -> [[Coord]]
 moveAlongVectors = flip (map . flip moveAlongVector)
 
 -------------------------------------------------------------------------------
--- Positions
+-- Position representations
 -------------------------------------------------------------------------------
 
-type Idx = Int
-
-data Pos =
-    Pos
+data PosRep =
+    PosRep
       {queen :: Coord,
        pawns :: Set Coord}
   deriving (Eq,Ord)
 
-instance Show Pos where
+instance Show PosRep where
   show p = "\n" ++ side ++ concat (map showRow (reverse inds)) ++ side
     where
       side = "+" ++ replicate boardSize '-' ++ "+\n"
@@ -152,43 +140,25 @@ instance Show Pos where
           else if darkSquare c then '*'
           else ' '
 
-initial :: Pos
-initial =
-    Pos
+initialRep :: PosRep
+initialRep =
+    PosRep
       {queen = Coord (n `div` 2) n,
        pawns = Set.fromList (map (flip Coord 1) [0..n])}
   where
     n = boardSize - 1
 
-occupied :: Pos -> Coord -> Bool
+occupied :: PosRep -> Coord -> Bool
 occupied p c = c == queen p || Set.member c (pawns p)
 
-empty :: Pos -> Coord -> Bool
+empty :: PosRep -> Coord -> Bool
 empty p = not . occupied p
-
-{-
-posToIdx :: Pos -> Idx
-posToIdx p = foldl pack 0 (f : hs)
-  where
-    pack n c = n * numSquares + c
-    f = coordToSquare (fox p) + 1
-    hs = sort $ map coordToSquare $ Set.toList $ hounds p
-
-idxToPos :: Idx -> Pos
-idxToPos i =
-    Pos
-      {fox = squareToCoord (f - 1),
-       hounds = Set.fromList (map squareToCoord hs)}
-  where
-    unpack n = (n `mod` numSquares, n `div` numSquares)
-    (hs,f) = unfoldN unpack packSize i
--}
 
 -------------------------------------------------------------------------------
 -- Legal moves
 -------------------------------------------------------------------------------
 
-queenMove :: Pos -> [Pos]
+queenMove :: PosRep -> [PosRep]
 queenMove p = concatMap mk (moveAlongVectors queenVectors (queen p))
   where
     mk [] = []
@@ -196,7 +166,7 @@ queenMove p = concatMap mk (moveAlongVectors queenVectors (queen p))
                   if empty p c then p' : mk cs
                   else [p' {pawns = Set.delete c (pawns p)}]
 
-pawnsMove :: Pos -> [Pos]
+pawnsMove :: PosRep -> [PosRep]
 pawnsMove p = map mk (updateSet mv (pawns p))
   where
     mk cs = p {pawns = cs}
@@ -206,26 +176,66 @@ pawnsMove p = map mk (updateSet mv (pawns p))
         c' = moveByVector northVector c
         c'' = moveByVector northVector c'
 
-move :: Player -> Pos -> [Pos]
-move Player1 p = pawnsMove p
-move Player2 p = queenMove p
+moveRep :: Player -> PosRep -> [PosRep]
+moveRep Player1 p = pawnsMove p
+moveRep Player2 p = queenMove p
 
 -------------------------------------------------------------------------------
 -- Position evaluations
 -------------------------------------------------------------------------------
 
-{-
-foxEscaped :: Pos -> Bool
-foxEscaped p = safe f && any safe (foxAdjacent f)
+pawnsToMoveVictoryRep :: PosRep -> Bool
+pawnsToMoveVictoryRep p = pawnCapture || any pawnPromote (Set.toList cs)
   where
-    f = fox p
-    safe = flip Set.notMember $ houndsReachable (hounds p)
+    pawnCapture = Set.member qsw cs || Set.member qse cs
+    pawnPromote c = yCoord c == boardSize - 2 && c /= qs
+    cs = pawns p
+    q = queen p
+    qs = moveByVector southVector q
+    qsw = moveByVector southWestVector q
+    qse = moveByVector southEastVector q
 
-won :: Player -> Pos -> Maybe Player
-won pl p | null (move pl p) = Just (Game.turn pl)
-won Player1 p | pawnsWon p = Just Player1
-won _ _ | otherwise = Nothing
--}
+-------------------------------------------------------------------------------
+-- Positions
+-------------------------------------------------------------------------------
+
+type Idx = Int
+
+newtype Pos = Pos {unPos :: Idx}
+  deriving (Eq,Ord)
+
+mkPos :: PosRep -> Pos
+mkPos p = Pos $ packPawns packQueen
+  where
+    packQueen = let Coord x y = queen p in pack boardSize y x
+    packPawns n = foldr packPawn n [0..(boardSize-1)]
+    packPawn x = pack (boardSize - 1) $
+        case filter ((== x) . xCoord) (Set.toList (pawns p)) of
+          [] -> 0
+          [Coord _ y] -> y
+          _ : _ : _ -> error "multiple pawns on same file"
+    pack k i n = n * k + i
+
+destPos :: Pos -> PosRep
+destPos n = PosRep {queen = Coord qx qy, pawns = Set.fromList (mapMaybe id cs)}
+  where
+    (cs,n') = mapLR unpackPawn (unPos n) [0..(boardSize-1)]
+    (qy,qx) = unpack boardSize n'
+    unpackPawn m x = let (y,m') = unpack (boardSize - 1) m in
+                     (if y == 0 then Nothing else Just (Coord x y), m')
+    unpack k n = (n `mod` k, n `div` k)
+
+instance Show Pos where
+  show = show . destPos
+
+initial :: Pos
+initial = mkPos initialRep
+
+move :: Player -> Pos -> [Pos]
+move pl = map mkPos . moveRep pl . destPos
+
+pawnsToMoveVictory :: Pos -> Bool
+pawnsToMoveVictory = pawnsToMoveVictoryRep . destPos
 
 -------------------------------------------------------------------------------
 -- Game definition
@@ -234,18 +244,10 @@ won _ _ | otherwise = Nothing
 game :: Game Pos
 game pl p =
     if null ps then Left (Game.winEval (Game.turn pl))
-    else if pl == Player1 && pawnsWin then Left (Win Player1 1)
+    else if pl == Player1 && pawnsToMoveVictory p then Left (Win Player1 1)
     else Right ps
   where
     ps = move pl p
-    pawnsWin = pawnCapture || any pawnPromote (Set.toList cs)
-    pawnCapture = Set.member qsw cs || Set.member qse cs
-    pawnPromote c = yCoord c == boardSize - 2 && c /= qs
-    cs = pawns p
-    q = queen p
-    qs = moveByVector southVector q
-    qsw = moveByVector southWestVector q
-    qse = moveByVector southEastVector q
 
 gameOver :: Player -> Pos -> Bool
 gameOver = Game.gameOver game
@@ -288,59 +290,12 @@ games = Game.games game Player1 initial
 gamesInitial :: Integer
 gamesInitial = evalInitial games
 
-{-
 -------------------------------------------------------------------------------
 -- Strategies
 -------------------------------------------------------------------------------
 
-foxBox :: Force Pos
-foxBox = Game.force game Player2 (const isFoxBox) Player1 initial
-
-maxFoxBox :: Val Pos (Max Event)
-maxFoxBox = Game.gameMax game Player1 (Game.evalUnsafe foxBox) Player1 initial
-
 stopLossStrategy :: Player -> Int -> Strategy Pos
 stopLossStrategy = Strategy.stopLossStrategy solution
-
-foxBoxStrategy :: Int -> Strategy Pos
-foxBoxStrategy = Strategy.forceStrategy foxBox Player2
-
-maxFoxBoxStrategy :: Player -> Strategy Pos
-maxFoxBoxStrategy = Strategy.maxStrategy . Game.evalUnsafe maxFoxBox
-
--- Best known parameterized strategies
-
-foxStrategyN :: Int -> Strategy Pos
-foxStrategyN n = Strategy.tryStrategy (stopLossStrategy Player1 n)
-
-houndsStrategyN :: Int -> Strategy Pos
-houndsStrategyN n =
-    Strategy.thenStrategy
-      (Strategy.tryStrategy (stopLossStrategy Player2 n))
-      (Strategy.tryStrategy (foxBoxStrategy n))
-
-adversaries :: Adversaries Pos
-adversaries = PlayerState (mk houndsStrategyN, mk foxStrategyN)
-  where mk sf = map (flip (,) Map.empty . sf) [0..]
-
--- Web game strategy
-
-strategy :: Prob -> Player -> Strategy Pos
-strategy fuzz pl =
-    Strategy.mixedStrategy fuzz
-      Strategy.idStrategy
-      (Strategy.thenStrategy (Strategy.sameResultStrategy pl pe) str)
-  where
-    str [] = []
-    str pws =
-        (if Game.winning Player1 (pe $ fst $ head pws)
-         then Strategy.bestStrategy Player2 pe
-         else maxFoxBoxStrategy pl') pws
-    pe = Game.evalUnsafe solution pl'
-    pl' = Game.turn pl
-
-moveDist :: Prob -> Player -> Pos -> [(Pos,Prob)]
-moveDist fuzz pl p = Strategy.moveDistStrategy game (strategy fuzz pl) pl p
 
 -------------------------------------------------------------------------------
 -- Validating strategies
@@ -356,7 +311,6 @@ validateStrategy pl str =
 
 probWin :: Player -> Strategy Pos -> ProbWin Pos
 probWin pl adv = Strategy.probWin game pl adv Player1 initial
--}
 
 -------------------------------------------------------------------------------
 -- The opposite position is reachable and has a different result

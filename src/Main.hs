@@ -43,8 +43,8 @@ reachableNC = Game.reachable NC.solution
 analyzeNC :: IO ()
 analyzeNC = do
     putStrLn $ "Board size: " ++ dimNC
-    putStrLn $ "Reachable positions: " ++ show reachableNC
-    putStrLn $ "Possible games: " ++ Game.ppGames NC.gamesInitial
+    putStrLn $ "Reachable positions: " ++ ppInteger reachableNC
+    putStrLn $ "Possible games: " ++ ppHugeInteger NC.gamesInitial
 
 -------------------------------------------------------------------------------
 -- Fox & Hounds
@@ -346,9 +346,9 @@ writePosTableFH file entries = withFile file WriteMode $ \h ->
 analyzeFH :: IO ()
 analyzeFH = do
     putStrLn $ "Board size: " ++ dimFH
-    putStrLn $ "Reachable positions: " ++ show reachableFH
+    putStrLn $ "Reachable positions: " ++ ppInteger reachableFH
     putStrLn $ "Reachable position index range: " ++ show reachableIdxFH
-    putStrLn $ "Possible games: " ++ Game.ppGames FH.gamesInitial
+    putStrLn $ "Possible games: " ++ ppHugeInteger FH.gamesInitial
     putStrLn ""
     putStrLn $ ppPositionFH "initial"
     putStrLn ""
@@ -384,6 +384,12 @@ dimQP = let n = show QP.boardSize in n ++ "x" ++ n
 reachableQP :: Int
 reachableQP = Game.reachable QP.solution
 
+reachableIdxQP :: (QP.Idx,QP.Idx)
+reachableIdxQP = (QP.unPos a, QP.unPos b)
+  where
+    ((_,a),_) = Map.findMin QP.solution
+    ((_,b),_) = Map.findMax QP.solution
+
 getPositionQP :: String -> (Player,QP.Pos)
 getPositionQP "initial" = (Player1,QP.initial)
 getPositionQP "opposite" = QP.opposite
@@ -395,18 +401,19 @@ ppPositionQP s =
     QP.ppPlayer pl ++ " to move" ++
     show p ++
     "Evaluation: " ++ QP.ppEval ev ++ "\n" ++
-    "Index: " -- ++ show idx
+    "Index: " ++ show idx
   where
     sp = ucfirst s ++ " position"
     ev = Game.evalUnsafe QP.solution pl p
-    --idx = QP.posToIdx p
+    idx = QP.unPos p
     (pl,p) = getPositionQP s
 
 analyzeQP :: IO ()
 analyzeQP = do
     putStrLn $ "Board size: " ++ dimQP
-    putStrLn $ "Reachable positions: " ++ show reachableQP
-    putStrLn $ "Possible games: " ++ Game.ppGames QP.gamesInitial
+    putStrLn $ "Reachable positions: " ++ ppInteger reachableQP
+    putStrLn $ "Reachable position index range: " ++ show reachableIdxQP
+    putStrLn $ "Possible games: " ++ ppHugeInteger QP.gamesInitial
     putStrLn ""
     putStrLn $ ppPositionQP "initial"
     putStrLn ""

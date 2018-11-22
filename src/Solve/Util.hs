@@ -12,9 +12,36 @@ module Solve.Util
 where
 
 import qualified Data.Char as Char
+import qualified Data.List as List
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Numeric (showFFloat)
+
+-------------------------------------------------------------------------------
+-- Pretty print integers
+-------------------------------------------------------------------------------
+
+groupr :: Int -> [a] -> [[a]]
+groupr k = g . foldr f ((k,[]),[])
+  where
+    f x ((1,xs),xss) = ((k,[]), (x : xs) : xss)
+    f x ((i,xs),xss) = ((i - 1, x : xs), xss)
+    g ((_,[]),xss) = xss
+    g ((_,xs),xss) = xs : xss
+
+ppInteger :: Integral a => a -> String
+ppInteger = ppSign . toInteger
+  where
+    ppSign i = if i < 0 then "-" ++ ppNat (-i) else ppNat i
+    ppNat n = List.intercalate "," $ groupr 3 $ show n
+
+ppHugeInteger :: Integral a => a -> String
+ppHugeInteger = ppSign . toInteger
+  where
+    ppSign i = if i < 0 then "-" ++ ppNat (-i) else ppNat i
+    ppNat n = let s = show n in
+              let e = length s - 1 in
+              List.intercalate "," (groupr 3 s) ++ " (~10^" ++ show e ++ ")"
 
 -------------------------------------------------------------------------------
 -- Parity
