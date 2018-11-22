@@ -12,15 +12,13 @@ module Solve.QueenPawns
 where
 
 import qualified Data.Char as Char
-import Data.List (sort)
-import qualified Data.Map as Map
 import Data.Maybe (mapMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Eval(..),Event,Force,Game,Games,Max(..),Player(..),PlayerState(..),Solve,Val)
+import Solve.Game (Eval(..),Game,Games,Player(..),Solve,Val)
 import qualified Solve.Game as Game
-import Solve.Strategy (Adversaries,ProbWin,Strategy,StrategyFail)
+import Solve.Strategy (ProbWin,Strategy,StrategyFail)
 import qualified Solve.Strategy as Strategy
 import Solve.Util
 
@@ -223,7 +221,7 @@ destPos n = PosRep {queen = Coord qx qy, pawns = Set.fromList (mapMaybe id cs)}
     (qy,qx) = unpack boardSize n'
     unpackPawn m x = let (y,m') = unpack (boardSize - 1) m in
                      (if y == 0 then Nothing else Just (Coord x y), m')
-    unpack k n = (n `mod` k, n `div` k)
+    unpack k m = (m `mod` k, m `div` k)
 
 instance Show Pos where
   show = show . destPos
