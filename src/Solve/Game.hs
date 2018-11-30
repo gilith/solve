@@ -11,11 +11,13 @@ portability: portable
 module Solve.Game
 where
 
-import Data.List (maximumBy)
+import Data.Function (on)
+import Data.List (intersperse,maximumBy)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe,mapMaybe)
 
 import qualified Solve.Graph as Graph
+import Solve.Util
 
 -------------------------------------------------------------------------------
 -- Players
@@ -207,6 +209,15 @@ solve game pl p = snd $ solveWith game Map.empty pl p
 reachable :: Solve p -> Int
 reachable = Map.size
 
+perfectPlay :: Ord p => Game p -> Solve p -> Player -> p -> [(Player,p)]
+perfectPlay game soln = go
+  where
+    go pl p = (pl,p) : (case game pl p of Left _ -> [] ; Right ps -> sel pl ps)
+    sel pl ps = go pl' (fst $ maximumBy (compareEval pl `on` snd) (map f ps))
+      where
+        f p = (p, evalUnsafe soln pl' p)
+        pl' = turn pl
+
 -------------------------------------------------------------------------------
 -- The number of possible games
 -------------------------------------------------------------------------------
@@ -289,3 +300,79 @@ gameMaxWith game mpl pv = dfsWith pre post
 gameMax :: (Ord p, Ord v) => Game p -> Player -> (Player -> p -> v) ->
            Player -> p -> Val p (Max v)
 gameMax game mpl pv pl p = snd $ gameMaxWith game mpl pv Map.empty pl p
+
+-------------------------------------------------------------------------------
+-- Finding studies (sequences of only moves to win the game)
+-------------------------------------------------------------------------------
+
+type Study p = (Player, Val p Int)
+
+studyWith :: Ord p => Game p -> Solve p ->
+             Study p -> Player -> p -> (Int, Study p)
+studyWith game soln (spl,sval0) pl0 p0 = (v1, (spl,sval1))
+  where
+    (v1,sval1) = dfsWith pre post sval0 pl0 p0
+
+    pre pl p =
+        case game pl p of
+          Left e -> Left (if winning spl e then 1 else 0)
+          Right ps -> Right (map ((,) ()) ps)
+
+    post pl p =
+        if not (winning spl e) then const 0
+        else if pl == spl then uniq . mapMaybe (incWin . snd)
+        else maximum . mapMaybe snd
+      where
+        incWin Nothing = Nothing
+        incWin (Just v) = if v == 0 then Nothing else Just (v + 1)
+        uniq [v] = v
+        uniq _ = 1
+        e = evalUnsafe soln pl p
+
+study :: Ord p => Game p -> Solve p -> Player -> Player -> p -> Study p
+study game soln spl pl p = snd $ studyWith game soln (spl,Map.empty) pl p
+
+bestStudies :: Study p -> [(Player,p)]
+bestStudies (spl,sval) = snd $ Map.foldrWithKey best (2,[]) sval
+  where
+    best (pl,_) _ bps | pl /= spl = bps
+    best p v (b,ps) | otherwise =
+        case compare v b of
+          LT -> (b,ps)
+          EQ -> (b, p : ps)
+          GT -> (v, [p])
+
+criticalPath :: Ord p => Game p -> Study p -> Player -> p -> [(Player,p)]
+criticalPath game (_,sval) = go
+  where
+    go pl p = (pl,p) : (case game pl p of Left _ -> [] ; Right ps -> sel pl ps)
+    sel pl ps = if v <= 1 then [(pl',p')] else go pl' p'
+      where
+        (p',v) = maximumBy (compare `on` snd) (map pv ps)
+        pv p = (p, evalUnsafe sval pl' p)
+        pl' = turn pl
+
+-------------------------------------------------------------------------------
+-- Pretty printing
+-------------------------------------------------------------------------------
+
+class Printable p where
+  ppPosition :: p -> String
+
+  ppPlayer :: p -> Player -> String
+  ppPlayer _ pl = show pl
+
+  ppPlayerPosition :: Player -> p -> String
+  ppPlayerPosition pl p = ppPlayer p pl ++ " to move\n" ++ ppPosition p
+
+  ppEval :: p -> Eval -> String
+  ppEval p (Win pl n) = ppPlayer p pl ++ " win in " ++ show n
+  ppEval _ Draw = "Draw"
+
+  ppPlay :: [(Player,p)] -> String
+  ppPlay [] = ""
+  ppPlay ((pl,p) : ps) = fmtTable fmt (intersperse [] ms)
+    where
+      ms = groupl 2 (if pl == Player1 then sl else "" : sl)
+      sl = map ppPosition (p : map snd ps)
+      fmt = Table {borderTable = False, alignLeftTable = True, paddingTable = 3}

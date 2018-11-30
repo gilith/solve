@@ -16,7 +16,7 @@ import Data.Maybe (mapMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Eval(..),Game,Games,Player(..),Solve,Val)
+import Solve.Game (Eval(..),Game,Games,Player(..),Solve,Study,Val)
 import qualified Solve.Game as Game
 import Solve.Strategy (ProbWin,Strategy,StrategyFail)
 import qualified Solve.Strategy as Strategy
@@ -278,6 +278,9 @@ winDepth pl p =
       Win _ d -> d
       Draw -> error "draws are not possible in this game"
 
+perfectPlay :: Player -> Pos -> [(Player,Pos)]
+perfectPlay = Game.perfectPlay game solution
+
 -------------------------------------------------------------------------------
 -- The number of possible games
 -------------------------------------------------------------------------------
@@ -287,6 +290,13 @@ games = Game.games game Player1 initial
 
 gamesInitial :: Integer
 gamesInitial = evalInitial games
+
+-------------------------------------------------------------------------------
+-- Finding studies (sequences of only moves to win the game)
+-------------------------------------------------------------------------------
+
+study :: Player -> Study Pos
+study spl = Game.study game solution spl Player1 initial
 
 -------------------------------------------------------------------------------
 -- Strategies
@@ -337,10 +347,8 @@ typical f = middle $ filter (uncurry f) bfsInitial
 -- Pretty printing
 -------------------------------------------------------------------------------
 
-ppPlayer :: Player -> String
-ppPlayer Player1 = "Pawns"
-ppPlayer Player2 = "Queen"
+instance Game.Printable Pos where
+  ppPosition = tail . show
 
-ppEval :: Eval -> String
-ppEval (Win pl n) = ppPlayer pl ++ " win in " ++ show n
-ppEval Draw = error "draws are impossible in this game"
+  ppPlayer _ Player1 = "Pawns"
+  ppPlayer _ Player2 = "Queen"

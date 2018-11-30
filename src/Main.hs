@@ -143,7 +143,7 @@ showStrategyFailFH ps =
         linesPos = lines . showPos
     header = ["Position","Strategy move","Better move"]
     tableFails =
-        showTable ([] : header : concat (map rowsFail (Set.toList ps)) ++ [[]])
+        ppTable ([] : header : concat (map rowsFail (Set.toList ps)) ++ [[]])
 
 houndsStopLossFH :: Int -> Strategy FH.Pos
 houndsStopLossFH n = Strategy.tryStrategy (FH.stopLossStrategy Player2 n)
@@ -226,14 +226,13 @@ probDepthFH = map f [0..depthFH]
 
 showProbDepthFH :: [(Int,((Prob,Prob,Prob),Prob))] -> String
 showProbDepthFH ps =
-    showTable
+    ppTable
       ([] :
-       ["Strategy", "Fox", "Fox wins", "Fox wins", "Hounds"] :
-       ["depth", "wins", "vs", "vs", "win"] :
-       ["", "vs", "StopLoss", "StopLoss", "vs"] :
-       ["", "StopLoss", "+FoxBox1", "+ FoxBox", "StopLoss"] :
-       ["", "from", "from", "from", "from"] :
-       ["", ifp, ifp, ifp, ihp] :
+       ["Strategy\ndepth",
+        "Fox wins\nvs\nStopLoss\nfrom\n" ++ ifp ++ "\nposition",
+        "Fox wins\nvs\nStopLoss\n+FoxBox1\nfrom\n" ++ ifp ++ "\nposition",
+        "Fox wins\nvs\nStopLoss\n+ FoxBox\nfrom\n" ++ ifp ++ "\nposition",
+        "Hounds\nwin\nvs\nStopLoss\nfrom\n" ++ ihp ++ "\nposition"] :
        [] :
        map row ps ++
        [[]])
@@ -277,12 +276,11 @@ fuzzFH = fst fuzzTableFH
 showFuzzTableFH :: (Prob,[(Prob,(Prob,Prob))]) -> String
 showFuzzTableFH (fuzz,rows) =
     showFuzz fuzz ++ "\n" ++
-    showTable
+    ppTable
       ([] :
-       ["Fuzz", "Fox", "Hounds"] :
-       ["factor", "wins", "win"] :
-       ["", "from", "from"] :
-       ["", ifp, ihp] :
+       ["Fuzz\nfactor",
+        "Fox wins\nfrom\n" ++ ifp ++ "\nposition",
+        "Hounds\nwin\nfrom\n" ++ ihp ++ "\nposition"] :
        [] :
        map showRow rows ++
        [[]])
@@ -398,15 +396,24 @@ getPositionQP _ = error "unknown position"
 ppPositionQP :: String -> String
 ppPositionQP s =
     sp ++ ":\n" ++
-    QP.ppPlayer pl ++ " to move" ++
-    show p ++
-    "Evaluation: " ++ QP.ppEval ev ++ "\n" ++
+    Game.ppPlayerPosition pl p ++
+    "Evaluation: " ++ Game.ppEval p ev ++ "\n" ++
     "Index: " ++ show idx
   where
     sp = ucfirst s ++ " position"
     ev = Game.evalUnsafe QP.solution pl p
     idx = QP.unPos p
     (pl,p) = getPositionQP s
+
+ppBestStudyQP :: Player -> String
+ppBestStudyQP pl =
+    case Game.bestStudies stdy of
+      [] -> "No good " ++ spl ++ " studies"
+      ((_,p) : _) -> "Best " ++ spl ++ " study:\n" ++
+                     Game.ppPlay (Game.criticalPath QP.game stdy pl p)
+  where
+    stdy = QP.study pl
+    spl = Game.ppPlayer QP.initial pl
 
 analyzeQP :: IO ()
 analyzeQP = do
@@ -418,6 +425,13 @@ analyzeQP = do
     putStrLn $ ppPositionQP "initial"
     putStrLn ""
     putStrLn $ ppPositionQP "opposite"
+    putStrLn ""
+    putStrLn $ "Perfect game:"
+    putStrLn $ Game.ppPlay (QP.perfectPlay Player1 QP.initial)
+    putStrLn ""
+    putStrLn $ ppBestStudyQP Player1
+    putStrLn ""
+    putStrLn $ ppBestStudyQP Player2
 
 -------------------------------------------------------------------------------
 -- Top-level

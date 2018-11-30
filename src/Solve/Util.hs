@@ -21,6 +21,9 @@ import Numeric (showFFloat)
 -- Pretty print integers
 -------------------------------------------------------------------------------
 
+groupl :: Int -> [a] -> [[a]]
+groupl k = foldl (\t h -> reverse h : t) [] . groupr k . reverse
+
 groupr :: Int -> [a] -> [[a]]
 groupr k = g . foldr f ((k,[]),[])
   where
@@ -173,28 +176,82 @@ fuzzDist e p = sumDist e (uniformDist (length p)) p
 -- Pretty-print a table
 -------------------------------------------------------------------------------
 
-showTable :: [[String]] -> String
-showTable rows =
-    concat $ map (showRow (widths [] rows)) rows
+data Table =
+    Table
+      {borderTable :: Bool,
+       alignLeftTable :: Bool,
+       paddingTable :: Int}
+  deriving (Show)
+
+fmtTable :: Table -> [[String]] -> String
+fmtTable fmt table = concatMap ppRow rows
   where
-    showRow :: [Int] -> [String] -> String
-    showRow ws [] =
-        tail (concat (map (\w -> "+" ++ replicate (w + 2) '-') ws)) ++ "\n"
-    showRow ws (c : cs) =
-        drop 2 (showEntry (head ws) c) ++
-        concat (zipWith showEntry (tail ws) cs) ++ "\n"
+    rows :: [(Int,[(Int,[String])])]
+    rows = map mkRow table
 
-    showEntry :: Int -> String -> String
-    showEntry w c = " | " ++ replicate (w - length c) ' ' ++ c
+    colWidths :: [Int]
+    colWidths = foldr (maxWidths . map fst . snd) [] rows
 
-    widths :: [Int] -> [[String]] -> [Int]
-    widths ws [] = ws
-    widths ws (r : rs) = widths (combine ws (map length r)) rs
+    cols :: Int
+    cols = length colWidths
 
-    combine :: [Int] -> [Int] -> [Int]
-    combine r1 r2 =
+    mkRow :: [String] -> (Int,[(Int,[String])])
+    mkRow [] = (0,[])
+    mkRow row = (maximum (map (length . snd) ents), ents)
+      where ents = map mkEntry row
+
+    mkEntry :: String -> (Int,[String])
+    mkEntry ent = case lines ent of
+                    [] -> (0,[])
+                    l -> (maximum (map length l), l)
+
+    ppRow :: (Int,[(Int,[String])]) -> String
+    ppRow (_,[]) = (if border then hBorder else "") ++ "\n"
+    ppRow (h,ents) = concat ls
+      where
+        row = ents ++ replicate (cols - length ents) (0,[])
+        (ls,_) = unfoldN peelRow h (zip colWidths row)
+
+    peelRow :: [(Int,(Int,[String]))] -> (String, [(Int,(Int,[String]))])
+    peelRow row = (l,row')
+      where
+        (row',(s,_)) = mapLR (peelEntry . vBorder) ("",0) row
+        l = (if border then tail s else s) ++ "\n"
+
+    peelEntry :: (String,Int) -> (Int,(Int,[String])) ->
+                 ((Int,(Int,[String])),(String,Int))
+    peelEntry (s,k) (cw,(ew,[])) = ((cw,(ew,[])), (s, k + cw + padding))
+    peelEntry (s,k) (cw, (ew, x : xs)) = ((cw,(ew,xs)),sk)
+      where
+        sk = if alignLeft then skl else skr
+        skl = (s ++ replicate k ' ' ++ x, (cw + padding) - xw)
+        skr = (s ++ replicate ((k + cw) - ew) ' ' ++ x, (ew + padding) - xw)
+        xw = length x
+
+    vBorder :: (String,Int) -> (String,Int)
+    vBorder (s,k) | border = (s ++ replicate k ' ' ++ "|", padding)
+    vBorder (s,k) | otherwise = (s,k)
+
+    hBorder :: String
+    hBorder = tail $ concatMap sep colWidths
+      where sep w = "+" ++ replicate (w + 2 * padding) '-'
+
+    border :: Bool
+    border = borderTable fmt
+
+    alignLeft :: Bool
+    alignLeft = alignLeftTable fmt
+
+    padding :: Int
+    padding = paddingTable fmt
+
+    maxWidths :: [Int] -> [Int] -> [Int]
+    maxWidths r1 r2 =
       zipWith max r1 r2 ++
       (case compare (length r1) (length r2) of
          LT -> drop (length r1) r2
          EQ -> []
          GT -> drop (length r2) r1)
+
+ppTable :: [[String]] -> String
+ppTable = fmtTable (Table True False 2)
