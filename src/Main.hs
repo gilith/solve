@@ -13,7 +13,7 @@ module Main
 where
 
 import qualified Data.List as List
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import Data.Maybe (mapMaybe)
 import Numeric (showFFloat)
@@ -40,11 +40,28 @@ dimNC = let n = show NC.boardSize in n ++ "x" ++ n
 reachableNC :: Int
 reachableNC = Game.reachable NC.solution
 
+ppBestStudyNC :: Player -> String
+ppBestStudyNC pl =
+    case Game.bestStudies stdy of
+      [] -> "No good " ++ spl ++ " studies"
+      ((_,p) : _) -> spl ++ " to move and win:\n\n" ++
+                     Game.ppPlay (Game.criticalPath NC.game stdy pl p)
+  where
+    stdy = NC.study pl
+    spl = NC.ppPlayer pl
+
 analyzeNC :: IO ()
 analyzeNC = do
     putStrLn $ "Board size: " ++ dimNC
     putStrLn $ "Reachable positions: " ++ ppInteger reachableNC
     putStrLn $ "Possible games: " ++ ppHugeInteger NC.gamesInitial
+    putStrLn ""
+    putStrLn $ "Perfect game (" ++ NC.ppEval (NC.evalInitial NC.solution) ++ "):\n"
+    putStr $ Game.ppPlay (NC.perfectPlay Player1 NC.initial)
+    putStrLn ""
+    putStr $ ppBestStudyNC Player1
+    putStrLn ""
+    putStr $ ppBestStudyNC Player2
 
 -------------------------------------------------------------------------------
 -- Fox & Hounds
@@ -104,7 +121,7 @@ showIncorrectPositionEvaluationsFH ds =
     show (length ds) ++ concatMap showDiff ds
   where
     showDiff (pl,p,e,e') =
-        "\n\n" ++ FH.ppPlayer pl ++ " to move" ++ show p ++
+        "\n\n" ++ Game.ppPlayerPosition pl p ++
         "Incorrect position evaluation: " ++ FH.ppEval e ++ "\n" ++
         "Correct position evaluation: " ++ FH.ppEval e'
 
@@ -119,7 +136,7 @@ showInfiniteMaxFoxBoxFH ps =
     show (length ps) ++ concatMap showPos ps
   where
     showPos (pl,p) =
-        "\n\n" ++ FH.ppPlayer pl ++ " to move" ++ show p ++
+        "\n\n" ++ Game.ppPlayerPosition pl p ++
         "Position evaluation: " ++ FH.ppEval ev ++ "\n" ++
         "Maximum FoxBox: " ++ show fb
       where
@@ -205,6 +222,17 @@ ppPositionFH s =
     mfb = Game.evalUnsafe FH.maxFoxBox pl p
     idx = FH.posToIdx p
     (pl,p) = getPositionFH s
+
+ppBestStudyFH :: Player -> String
+ppBestStudyFH pl =
+    case Game.bestStudies stdy of
+      [] -> "No good " ++ spl ++ " studies"
+      ((_,p) : _) -> spl ++ " to move and win:\n" ++
+                     Game.ppPlay (Game.criticalPath FH.game stdy pl p) ++
+                     "Study position index: " ++ show (FH.posToIdx p) ++ "\n"
+  where
+    stdy = FH.study pl
+    spl = FH.ppPlayer pl
 
 probWinFH :: Int -> ((Prob,Prob,Prob),Prob)
 probWinFH n = ((f1,f2,f3),h1)
@@ -360,17 +388,25 @@ analyzeFH = do
     putStrLn ""
     putStrLn $ ppPositionFH "typical FoxBox"
     putStrLn ""
+    putStrLn $ "Perfect game (" ++ FH.ppEval solutionFH ++ "):"
+    putStr $ Game.ppPlay (FH.perfectPlay Player1 FH.initial)
+    putStrLn ""
+    putStr $ ppBestStudyFH Player1
+    putStrLn ""
+    putStr $ ppBestStudyFH Player2
+    putStrLn ""
     putStrLn $ "Incorrect position evaluations: " ++ showIncorrectPositionEvaluationsFH incorrectPositionEvaluationsFH
     putStrLn $ "FoxBox strategy failure positions: " ++ showStrategyFailFH foxBoxStrategyFailFH
     putStrLn $ "Positions violating infinite maximum FoxBox iff winning for Fox: " ++ showInfiniteMaxFoxBoxFH infiniteMaxFoxBoxFH
     putStrLn ""
-    putStrLn $ "Win probabilities against strategies of different depths:"
-    putStrLn $ showProbDepthFH probDepthFH
-    putStr $ "Fairest fuzz factor: "
-    putStrLn $ showFuzzTableFH fuzzTableFH
-    putStr $ "Creating game database in " ++ dbFH ++ ":"
-    writePosTableFH dbFH posTableFH
-    putStrLn $ " " ++ show (length posTableFH) ++ " rows"
+    if FH.boardSize > 8 then return () else do
+        putStrLn $ "Win probabilities against strategies of different depths:"
+        putStrLn $ showProbDepthFH probDepthFH
+        putStr $ "Fairest fuzz factor: "
+        putStrLn $ showFuzzTableFH fuzzTableFH
+        putStr $ "Creating game database in " ++ dbFH ++ ":"
+        writePosTableFH dbFH posTableFH
+        putStrLn $ " " ++ show (length posTableFH) ++ " rows"
 
 -------------------------------------------------------------------------------
 -- Queen & Pawns
@@ -397,7 +433,7 @@ ppPositionQP :: String -> String
 ppPositionQP s =
     sp ++ ":\n" ++
     Game.ppPlayerPosition pl p ++
-    "Evaluation: " ++ Game.ppEval p ev ++ "\n" ++
+    "Evaluation: " ++ QP.ppEval ev ++ "\n" ++
     "Index: " ++ show idx
   where
     sp = ucfirst s ++ " position"
@@ -409,11 +445,11 @@ ppBestStudyQP :: Player -> String
 ppBestStudyQP pl =
     case Game.bestStudies stdy of
       [] -> "No good " ++ spl ++ " studies"
-      ((_,p) : _) -> "Best " ++ spl ++ " study:\n" ++
+      ((_,p) : _) -> spl ++ " to move and win:\n" ++
                      Game.ppPlay (Game.criticalPath QP.game stdy pl p)
   where
     stdy = QP.study pl
-    spl = Game.ppPlayer QP.initial pl
+    spl = QP.ppPlayer pl
 
 analyzeQP :: IO ()
 analyzeQP = do
@@ -426,12 +462,12 @@ analyzeQP = do
     putStrLn ""
     putStrLn $ ppPositionQP "opposite"
     putStrLn ""
-    putStrLn $ "Perfect game:"
-    putStrLn $ Game.ppPlay (QP.perfectPlay Player1 QP.initial)
+    putStrLn $ "Perfect game (" ++ QP.ppEval (QP.evalInitial QP.solution) ++ "):"
+    putStr $ Game.ppPlay (QP.perfectPlay Player1 QP.initial)
     putStrLn ""
-    putStrLn $ ppBestStudyQP Player1
+    putStr $ ppBestStudyQP Player1
     putStrLn ""
-    putStrLn $ ppBestStudyQP Player2
+    putStr $ ppBestStudyQP Player2
 
 -------------------------------------------------------------------------------
 -- Top-level

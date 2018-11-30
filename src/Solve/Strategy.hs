@@ -13,7 +13,7 @@ where
 
 import Data.Function (on)
 import Data.List (maximumBy)
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe,isJust,mapMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set

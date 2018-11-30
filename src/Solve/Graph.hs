@@ -11,8 +11,8 @@ portability: portable
 module Solve.Graph
 where
 
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Sequence (ViewL(..),(><))
 import qualified Data.Sequence as Sequence
 import qualified Data.Set as Set
@@ -45,7 +45,7 @@ dfsWith pre post = go Set.empty
               (v,db') = evalNode br db n (pre n)
 
     evalNode _ db _ (Left v) = (v,db)
-    evalNode br db n (Right ans) = v `seq` (v,db')
+    evalNode br db n (Right ans) = (v,db')
       where
         v = post n nvs
         (nvs,db') = mapLR (evalChild (Set.insert n br)) db ans

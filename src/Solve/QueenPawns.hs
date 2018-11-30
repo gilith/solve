@@ -352,3 +352,9 @@ instance Game.Printable Pos where
 
   ppPlayer _ Player1 = "Pawns"
   ppPlayer _ Player2 = "Queen"
+
+ppPlayer :: Player -> String
+ppPlayer = Game.ppPlayer initial
+
+ppEval :: Eval -> String
+ppEval = Game.ppEval initial

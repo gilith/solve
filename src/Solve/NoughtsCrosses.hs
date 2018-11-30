@@ -17,7 +17,7 @@ import qualified Data.Maybe as Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Solve.Game (Eval(..),Game,Games,Player(..),Solve,Val)
+import Solve.Game (Eval(..),Game,Games,Player(..),Solve,Study,Val)
 import qualified Solve.Game as Game
 
 -------------------------------------------------------------------------------
@@ -147,6 +147,9 @@ solution = Game.solve game Player1 initial
 winningFor :: Player -> Player -> Pos -> Bool
 winningFor wpl pl p = Game.winning wpl (Game.evalUnsafe solution pl p)
 
+perfectPlay :: Player -> Pos -> [(Player,Pos)]
+perfectPlay = Game.perfectPlay game solution
+
 -------------------------------------------------------------------------------
 -- The number of possible games
 -------------------------------------------------------------------------------
@@ -158,13 +161,24 @@ gamesInitial :: Integer
 gamesInitial = evalInitial games
 
 -------------------------------------------------------------------------------
+-- Finding studies (sequences of only moves to win the game)
+-------------------------------------------------------------------------------
+
+study :: Player -> Study Pos
+study spl = Game.study game solution spl Player1 initial
+
+-------------------------------------------------------------------------------
 -- Pretty printing
 -------------------------------------------------------------------------------
 
+instance Game.Printable Pos where
+  ppPosition = tail . show
+
+  ppPlayer _ Player1 = "Noughts"
+  ppPlayer _ Player2 = "Crosses"
+
 ppPlayer :: Player -> String
-ppPlayer Player1 = "Noughts"
-ppPlayer Player2 = "Crosses"
+ppPlayer = Game.ppPlayer initial
 
 ppEval :: Eval -> String
-ppEval (Win pl n) = ppPlayer pl ++ " win in " ++ show n
-ppEval Draw = "Draw"
+ppEval = Game.ppEval initial

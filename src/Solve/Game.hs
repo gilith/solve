@@ -13,7 +13,7 @@ where
 
 import Data.Function (on)
 import Data.List (intersperse,maximumBy)
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe,mapMaybe)
 
 import qualified Solve.Graph as Graph
