@@ -29,22 +29,113 @@ Queen to move
 +-----+
 Evaluation: Queen win in 13
 Index: 8657
+
+Perfect game (Pawns win in 5):
++-----+   +-----+
+|* Q *|   |* Q *|
+| * * |   | * *P|
+|* * *|   |* * *|
+|PPPPP|   |PPPP |
+|* * *|   |* * *|
++-----+   +-----+
+
++-----+   +-----+
+|* * Q|   |* * Q|
+| * *P|   | * PP|
+|* * *|   |* * *|
+|PPPP |   |PPP* |
+|* * *|   |* * *|
++-----+   +-----+
+
++-----+
+|Q * *|
+| * PP|
+|* * *|
+|PPP* |
+|* * *|
++-----+
+
+Pawns to move and win:
++-----+   +-----+
+|* * *|   |* * *|
+|Q* * |   |Q* * |
+|* * *|   |*P* *|
+| PP* |   | *P* |
+|* * *|   |* * *|
++-----+   +-----+
+
++-----+   +-----+
+|* * *|   |* * *|
+| * * |   | *P* |
+|QP* *|   |QP* *|
+| *P* |   | * * |
+|* * *|   |* * *|
++-----+   +-----+
+
++-----+   +-----+
+|* Q *|   |* Q *|
+| *P* |   | PP* |
+|*P* *|   |* * *|
+| * * |   | * * |
+|* * *|   |* * *|
++-----+   +-----+
+
+Queen to move and win:
+          +-----+
+          |* * *|
+          | * P |
+          |P * *|
+          | *P*P|
+          |Q * *|
+          +-----+
+
++-----+   +-----+
+|* * *|   |* * *|
+| * Q |   | * QP|
+|P * *|   |P * *|
+| *P*P|   | *P* |
+|* * *|   |* * *|
++-----+   +-----+
+
++-----+   +-----+
+|* * *|   |* * *|
+| * *Q|   | *P*Q|
+|P * *|   |P * *|
+| *P* |   | * * |
+|* * *|   |* * *|
++-----+   +-----+
+
++-----+   +-----+
+|* * *|   |* * *|
+| *Q* |   |P*Q* |
+|P * *|   |* * *|
+| * * |   | * * |
+|* * *|   |* * *|
++-----+   +-----+
+
++-----+
+|* * *|
+|Q* * |
+|* * *|
+| * * |
+|* * *|
++-----+
 ___________________________________________________________________________
 	Command being timed: "dist/build/solve/solve QP"
-	User time (seconds): 0.42
-	System time (seconds): 0.00
+	User time (seconds): 0.82
+	System time (seconds): 0.01
 	Percent of CPU this job got: 99%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.42
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.83
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 16260
+	Maximum resident set size (kbytes): 16276
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 4159
+	Minor (reclaiming a frame) page faults: 4166
 	Voluntary context switches: 3
-	Involuntary context switches: 69
+	Involuntary context switches: 196
 	Swaps: 0
 	File system inputs: 0
 	File system outputs: 0
