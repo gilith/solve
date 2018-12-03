@@ -47,7 +47,7 @@ and executing the following:
     unbuffer time -v dist/build/solve/solve GAME | tee doc/GAME-SIZE.txt
 
 [cabal]: https://www.haskell.org/cabal/ "Cabal"
-[Fox and Hounds]: https://en.wikipedia.org/wiki/Fox_games#Fox_and_Hounds "Fox & Hounds"
+[Fox and Hounds]: https://gilith.wordpress.com/2018/11/26/fox-hounds/ "Fox & Hounds"
 [Haskell]: https://www.haskell.org/ "Haskell"
 [solve package]: https://hackage.haskell.org/package/solve "solve package"
 [MIT License]: https://github.com/gilith/solve/blob/master/LICENSE "MIT License"
