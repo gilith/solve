@@ -10,7 +10,7 @@ This software is released under the [MIT License][].
 Install
 -------
 
-Installing the hol package requires [cabal][]:
+Installing the solve package requires [cabal][]:
 
     git clone https://github.com/gilith/solve.git
     cd solve

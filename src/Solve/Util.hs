@@ -215,13 +215,13 @@ fmtTable fmt table = concatMap ppRow rows
     peelRow :: [(Int,(Int,[String]))] -> (String, [(Int,(Int,[String]))])
     peelRow row = (l,row')
       where
-        (row',(s,_)) = mapLR (peelEntry . vBorder) ("",0) row
+        ((s,_),row') = List.mapAccumL (peelEntry . vBorder) ("",0) row
         l = (if border then tail s else s) ++ "\n"
 
     peelEntry :: (String,Int) -> (Int,(Int,[String])) ->
-                 ((Int,(Int,[String])),(String,Int))
-    peelEntry (s,k) (cw,(ew,[])) = ((cw,(ew,[])), (s, k + cw + padding))
-    peelEntry (s,k) (cw, (ew, x : xs)) = ((cw,(ew,xs)),sk)
+                 ((String,Int),(Int,(Int,[String])))
+    peelEntry (s,k) (cw,(ew,[])) = ((s, k + cw + padding),(cw,(ew,[])))
+    peelEntry (s,k) (cw, (ew, x : xs)) = (sk,(cw,(ew,xs)))
       where
         sk = if alignLeft then skl else skr
         skl = (s ++ replicate k ' ' ++ x, (cw + padding) - xw)
